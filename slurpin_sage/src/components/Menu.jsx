@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { auth } from './auth/firebas';
+import { auth } from '../firebase';
 import { useCart } from '../context/CartContext';
 import CartPopup from "./CartPopup";
 import ProductCustomization from "./ProductCustomization";

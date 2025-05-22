@@ -6,8 +6,10 @@ import About from './components/About.jsx';
 import Footer from './components/Footer';
 import PopularItems from './components/PopularItems';
 import ContactForm from './components/ContactForm';
-
-import Checkout from './pages/Checkout';
+// import ItemDec from './pages/itemdec/itemdec';
+import ProductPage from './pages/item_dec';
+// import Checkout from './pages/Checkout';
+import Cart from './pages/Cart';
 import Home from './pages/Home';
 import { CartProvider } from './context/CartContext';
 import AOS from 'aos';
@@ -35,7 +37,9 @@ function App() {
               <Route path="/menu" element={<Menu />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<ContactForm />} />
-              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/cart" element={<Cart />} />
+              {/* <Route path="/item/:id" element={<ItemDec />} /> */}
+              <Route path="/products/:category/:productId" element={<ProductPage />} />
             </Routes>
           </main>
           <Footer />
@@ -45,4 +49,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; 

@@ -1,0 +1,102 @@
+.ingredients_Item_des {
+  padding: 48px 0;
+  background-color: #fff;
+}
+
+.ingredient-list_Item_des {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.ingredient-tag_Item_des {
+  padding: 12px 16px;
+  background-color: var(--sage-100);
+  border-radius: 8px;
+  color: var(--sage-700);
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.ingredient-tag_Item_des:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.benefits-card_Item_des {
+  max-width: 896px;
+  margin: 0 auto;
+  background-color: var(--sage-100);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.benefits-content_Item_des {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.benefits-icon_Item_des {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.heart-icon_Item_des {
+  width: 72px;
+  height: 72px;
+  color: #fff;
+  background-color: var(--sage-500);
+  border-radius: 50%;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.benefits-title_Item_des {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--sage-700);
+  margin-bottom: 24px;
+}
+
+.benefits-list_Item_des {
+  list-style: none;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.benefit-item_Item_des {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #374151;
+  font-size: 16px;
+  text-align: left;
+}
+
+.check-icon_Item_des {
+  width: 20px;
+  height: 20px;
+  color: var(--sage-500);
+}
+
+@media (min-width: 768px) {
+  .benefits-content_Item_des {
+    flex-direction: column;
+  }
+  .benefits-icon_Item_des {
+    margin-bottom: 24px;
+  }
+  .benefits-list_Item_des {
+    padding: 0 32px;
+  }
+  .benefits-card_Item_des {
+    padding: 32px;
+  }
+}

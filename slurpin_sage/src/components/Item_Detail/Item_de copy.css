@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --sage-100: #f0f4f0;
+  --sage-200: #dce7dc;
+  --sage-300: #b8d3b8;
+  --sage-400: #8aba8a;
+  --sage-500: #4d9e4d;
+  --sage-600: #3c7d3c;
+  --sage-700: #2c5c2c;
+  --sage-800: #1e3e1e;
+  --sage-900: #0f1f0f;
+}
+
+/* * {
+  margin: 0;
+  padding: 0;
+   box-sizing: border-box; 
+} */
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #374151;
+  background-color: #fff;
+}
+
+.container_Item_des {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.error_Item_des {
+  color: #dc2626;
+  font-size: 16px;
+  text-align: center;
+  padding: 16px;
+}
+
+.section-title_Item_des {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--sage-700);
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.section-subtitle_Item_des {
+  font-size: 16px;
+  color: #6b7280;
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 32px;
+}
+
+.card-title_Item_des {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sage-700);
+  margin-bottom: 24px;
+}

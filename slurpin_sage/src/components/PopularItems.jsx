@@ -4,12 +4,13 @@ import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import "./PopularItems.css";
 import ProductCustomization from "./ProductCustomization";
-import { auth } from './auth/firebas';
+import { auth } from '../firebase';
 import LoginSignupPage from './auth/LoginSignupPage';
 
 const PopularItems = () => {
   const [popularItems, setPopularItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showCustomization, setShowCustomization] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -18,54 +19,93 @@ const PopularItems = () => {
   useEffect(() => {
     const fetchPopularItems = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // Fetch popular items - in a real app, you might have a "featured" flag
-        // or use analytics to determine popular items
-        const itemsRef = collection(db, "items");
-        const q = query(itemsRef, limit(4)); // Limit to 4 items
-        const querySnapshot = await getDocs(q);
-        
-        const items = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        
+        const categories = ['smoothies', 'milkshakes', 'bowls'];
+        let items = [];
+        const imageMap = {
+          'morning-glory-smoothie': 'greensmoothie.jpg',
+          'chocolate-delight': 'chocolate.jpg',
+          'acai-bowl': 'acai.jpg',
+          'tropical-paradise': 'tropical.jpg'
+        };
+        const tagMap = {
+          'morning-glory-smoothie': 'BESTSELLER',
+          'acai-bowl': 'NEW'
+        };
+
+        for (const category of categories) {
+          const itemsRef = collection(db, `products/config/${category}`);
+          const q = query(itemsRef, limit(2));
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.empty) {
+            console.warn(`No documents found in products/config/${category}`);
+          }
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            items.push({
+              id: doc.id,
+              category,
+              name: data.productName
+                ? data.productName.replace(/-/g, ' ').toUpperCase()
+                : doc.id.replace(/-/g, ' ').toUpperCase(),
+              ingredients: Array.isArray(data.ingredients)
+                ? data.ingredients.join(', ')
+                : 'Ingredients not available',
+              price: data.price || 0,
+              image: imageMap[doc.id] || 'greensmoothie.jpg',
+              tag: tagMap[doc.id] || null
+            });
+          });
+        }
+
+        if (items.length === 0) {
+          throw new Error('No items found in any category');
+        }
+
+        items = items.sort((a, b) => b.price - a.price).slice(0, 4);
         setPopularItems(items);
       } catch (error) {
-        console.error("Error fetching popular items:", error);
-        // Fallback data in case Firebase fetch fails
-        setPopularItems([
+        console.error("Error fetching popular items:", error.message);
+        setError('Failed to load popular items. Using fallback data.');
+        let fallbackItems = [
           {
-            id: "1",
-            name: "Green Goddess",
-            ingredients: "Spinach, kale, banana, mango, and chia seeds",
+            id: "morning-glory-smoothie",
+            category: "smoothies",
+            name: "MORNING GLORY SMOOTHIE",
+            ingredients: "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
             price: 299,
             image: "greensmoothie.jpg",
             tag: "BESTSELLER"
           },
           {
-            id: "2",
-            name: "Berry Blast",
-            ingredients: "Strawberry, blueberry, raspberry, yogurt, and honey",
+            id: "chocolate-delight",
+            category: "milkshakes",
+            name: "CHOCOLATE DELIGHT",
+            ingredients: "Milk, Cocoa Powder, Sugar, Vanilla Ice Cream, Chocolate Syrup",
             price: 349,
-            image: "berry.jpg",
+            image: "chocolate.jpg"
           },
           {
-            id: "3",
-            name: "Tropical Paradise",
-            ingredients: "Pineapple, mango, coconut milk, and banana",
-            price: 299,
-            image: "tropical.jpg",
-          },
-          {
-            id: "4",
-            name: "Protein Power",
-            ingredients: "Almond milk, banana, peanut butter, and protein powder",
+            id: "acai-bowl",
+            category: "bowls",
+            name: "ACAI BOWL",
+            ingredients: "Acai Berries, Banana, Strawberries, Almond Milk, Granola, Honey",
             price: 399,
-            image: "protein.jpg",
+            image: "acai.jpg",
             tag: "NEW"
           },
-        ]);
+          {
+            id: "tropical-paradise",
+            category: "smoothies",
+            name: "TROPICAL PARADISE",
+            ingredients: "Orange, Mango, Banana",
+            price: 329,
+            image: "tropical.jpg"
+          }
+        ];
+        fallbackItems = fallbackItems.sort((a, b) => b.price - a.price).slice(0, 4);
+        setPopularItems(fallbackItems);
       } finally {
         setLoading(false);
       }
@@ -73,7 +113,6 @@ const PopularItems = () => {
 
     fetchPopularItems();
     
-    // Add scroll animation for items
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -84,28 +123,21 @@ const PopularItems = () => {
     
     setTimeout(() => {
       const itemCards = document.querySelectorAll('.popular-item-card');
-      itemCards.forEach(card => {
-        observer.observe(card);
-      });
+      itemCards.forEach(card => observer.observe(card));
     }, 100);
     
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   const handleAddToCart = (e, item) => {
     e.stopPropagation();
     e.preventDefault();
     
-    // Check if user is authenticated
     if (!auth.currentUser) {
-      // If not authenticated, show login modal
       setShowLoginModal(true);
       return;
     }
     
-    // If authenticated, proceed with adding to cart
     setSelectedItem(item);
     setShowCustomization(true);
   };
@@ -119,8 +151,20 @@ const PopularItems = () => {
     navigate('/menu');
   };
 
+  const handleCardClick = (category, id) => {
+    if (!category || !id) {
+      console.error('Invalid navigation parameters:', { category, id });
+      return;
+    }
+    navigate(`/products/${category}/${id}`);
+  };
+
   if (loading) {
     return <div className="popular-loading">Loading popular items...</div>;
+  }
+
+  if (error) {
+    console.warn("Displaying fallback data due to error:", error);
   }
 
   return (
@@ -134,14 +178,14 @@ const PopularItems = () => {
         {popularItems.map((item, index) => (
           <div 
             className="popular-item-card fade-in" 
-            key={item.id}
-            onClick={() => navigate(`/item/${item.id}`)}
+            key={`${item.category}-${item.id}`}
+            onClick={() => handleCardClick(item.category, item.id)}
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             {item.tag && <span className={`item-tag ${item.tag.toLowerCase()}`}>{item.tag}</span>}
             <div className="item-image">
               <img 
-                src={`/${item.image || "greensmoothie.jpg"}`} 
+                src={`/${item.image}`} 
                 alt={item.name}
                 onError={(e) => {
                   e.target.onerror = null;
@@ -189,4 +233,4 @@ const PopularItems = () => {
   );
 };
 
-export default PopularItems; 
+export default PopularItems;

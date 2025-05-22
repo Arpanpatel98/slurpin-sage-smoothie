@@ -1,4 +1,5 @@
 /* General Styles */
+@import "tailwindcss";
 body {
   margin: 0;
   font-family: "Segoe UI", sans-serif;
@@ -30,7 +31,7 @@ body {
   overflow: hidden;
   width: 100%;
   max-width: 1200px;
-  height: 80vh;
+  height: 95vh;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.5s ease;
 }
@@ -779,5 +780,70 @@ input.border-red-500:focus {
       margin-top: 1rem;
       font-size: 0.85rem;
       min-height: 44px;
+  }
+}
+
+/* OTP Input Styles */
+.otp-input {
+  width: 40px;
+  height: 48px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s ease;
+  background-color: white;
+  color: #2d3748;
+}
+
+.otp-input:focus {
+  border-color: #4d8d53;
+  box-shadow: 0 0 0 3px rgba(77, 141, 83, 0.1);
+  outline: none;
+}
+
+.otp-input.error {
+  border-color: #e53e3e;
+}
+
+.otp-input:disabled {
+  background-color: #f7fafc;
+  cursor: not-allowed;
+}
+
+/* Responsive OTP Input */
+@media (max-width: 480px) {
+  .otp-input {
+    width: 35px;
+    height: 42px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .otp-input {
+    width: 30px;
+    height: 38px;
+    font-size: 1rem;
+  }
+}
+
+/* OTP Container Styles */
+.otp-container {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.otp-inputs {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .otp-inputs {
+    gap: 0.25rem;
   }
 }

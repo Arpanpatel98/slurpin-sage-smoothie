@@ -12,10 +12,10 @@ const CartButton = () => {
   return (
     <button 
       className="cart-button" 
-      onClick={() => navigate('/checkout')}
+      onClick={() => navigate('/Cart')}
       aria-label="Shopping cart"
     >
-      <i className="fas fa-shopping-cart"></i>
+      <i className="fas fa-shopping-cart" style={{ color: 'white' }}></i>
       {totalItems > 0 && <span className="cart-count">{totalItems}</span>}
     </button>
   );

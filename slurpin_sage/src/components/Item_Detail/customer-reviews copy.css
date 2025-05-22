@@ -1,0 +1,264 @@
+.customer-reviews_Item_des {
+  padding: 48px 0;
+  background-color: #fff;
+}
+
+.reviews-header_Item_des {
+  max-width: 896px;
+  margin: 0 auto 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rating-summary_Item_des {
+  display: flex;
+  align-items: center;
+}
+
+.rating-text_Item_des {
+  margin-left: 8px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.review-button_Item_des {
+  padding: 8px 16px;
+  background-color: var(--sage-500);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.review-button_Item_des:hover {
+  background-color: var(--sage-600);
+}
+
+.reviews-list_Item_des {
+  max-width: 896px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.review-card_Item_des {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  border: 1px solid #f3f4f6;
+  animation: fadeIn_Item_des 0.5s ease-out;
+}
+
+@keyframes fadeIn_Item_des {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.review-header_Item_des {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.review-rating_Item_des {
+  display: flex;
+}
+
+.star-icon_Item_des.filled {
+  color: #facc15;
+}
+
+.star-icon_Item_des:not(.filled) {
+  color: #d1d5db;
+}
+
+.review-title_Item_des {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-top: 4px;
+}
+
+.review-date_Item_des {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.review-text_Item_des {
+  font-size: 16px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.review-author_Item_des {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.author-avatar_Item_des {
+  width: 32px;
+  height: 32px;
+  background-color: var(--sage-200);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sage-700);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.author-name_Item_des {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.verified-badge_Item_des {
+  padding: 4px 8px;
+  background-color: var(--sage-100);
+  color: var(--sage-700);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.review-form-container_Item_des {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.review-form_Item_des {
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-header_Item_des {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.form-header_Item_des h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sage-700);
+}
+
+.close-button_Item_des {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.form-group_Item_des {
+  margin-bottom: 16px;
+}
+
+.form-group_Item_des label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sage-700);
+  margin-bottom: 8px;
+}
+
+.form-group_Item_des input,
+.form-group_Item_des textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.form-group_Item_des textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.rating-input_Item_des {
+  display: flex;
+  gap: 8px;
+}
+
+.star-button_Item_des {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.star-button_Item_des.filled {
+  color: #facc15;
+}
+
+.form-actions_Item_des {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.submit-button_Item_des,
+.cancel-button_Item_des {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-button_Item_des {
+  background-color: var(--sage-500);
+  color: white;
+  border: none;
+}
+
+.submit-button_Item_des:hover {
+  background-color: var(--sage-600);
+}
+
+.cancel-button_Item_des {
+  background-color: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.cancel-button_Item_des:hover {
+  background-color: #f3f4f6;
+}

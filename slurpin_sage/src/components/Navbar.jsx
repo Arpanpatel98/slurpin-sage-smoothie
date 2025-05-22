@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth } from './auth/firebas';
+import { auth } from './auth/firebaseLoginSignup';
 import CartButton from './CartButton';
 import LoginSignupPage from './auth/LoginSignupPage';
 import './Navbar.css';

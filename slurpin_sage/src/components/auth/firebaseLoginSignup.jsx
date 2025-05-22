@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { getApps } from 'firebase/app';
 import { 
   getAuth, 
   signInWithPhoneNumber, 
@@ -7,20 +7,9 @@ import {
   RecaptchaVerifier,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import app from '../../firebase';
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  // Replace with your Firebase config object
-  apiKey: "AIzaSyDB_-d-Tx7wi5hhagq1LMmeaLGH6ikNH_g",
-  authDomain: "slurpin-sage.firebaseapp.com",
-  projectId: "slurpin-sage",
-  storageBucket: "slurpin-sage.appspot.com",
-  messagingSenderId: "1000000000000",
-  appId: "1:1000000000000:web:1234567890abcdef1234567890abcdef"
-};
-
-// Only initialize if there are no apps already
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Initialize auth and providers
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
@@ -36,16 +25,28 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Phone Authentication Functions
+// Initialize reCAPTCHA verifier
 export const generateRecaptcha = () => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'invisible',
-      'callback': () => {
-        // reCAPTCHA solved, allow signInWithPhoneNumber.
-      }
-    });
+  // Clear any existing reCAPTCHA
+  if (window.recaptchaVerifier) {
+    window.recaptchaVerifier.clear();
+    window.recaptchaVerifier = null;
   }
+
+  // Create new reCAPTCHA instance
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    'size': 'invisible',
+    'callback': () => {
+      // reCAPTCHA solved, allow signInWithPhoneNumber.
+    },
+    'expired-callback': () => {
+      // Reset reCAPTCHA when expired
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+  });
+
+  return window.recaptchaVerifier;
 };
 
 // More reliable method to check if a phone number exists
@@ -98,38 +99,31 @@ export const checkPhoneExists = async (phoneNumber) => {
   }
 };
 
-// Modified OTP request to handle login vs signup differently
+// Request OTP
 export const requestOTP = async (phoneNumber, isLogin = false) => {
   try {
-    // First check if the phone can receive OTPs
-    const checkResult = await checkPhoneExists(phoneNumber);
-    
-    if (checkResult.error) {
-      return { 
-        success: false, 
-        error: checkResult.error 
-      };
-    }
-    
-    // If OTP was already sent during our existence check, use that
-    if (checkResult.confirmationSent && window.tempConfirmationResult) {
-      window.confirmationResult = window.tempConfirmationResult;
-      window.tempConfirmationResult = null; // Clear it to avoid confusion
-      return { success: true, isLogin };
-    }
-    
-    // Otherwise, send a new OTP
-    const formattedPhone = `+91${phoneNumber}`; // Format for Indian numbers
     const appVerifier = window.recaptchaVerifier;
+    if (!appVerifier) {
+      throw new Error('reCAPTCHA not initialized');
+    }
+
+    const formattedPhone = `+91${phoneNumber}`; // Assuming Indian phone numbers
     const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
     window.confirmationResult = confirmationResult;
-    return { success: true, isLogin };
-    
+    return { success: true };
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    console.error('Error requesting OTP:', error);
+    
+    // Clear reCAPTCHA on error
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+
     return { 
       success: false, 
-      error: error.message 
+      error: error.message,
+      code: error.code
     };
   }
 };

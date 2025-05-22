@@ -7,7 +7,7 @@ import {
   verifyOTP,
   signInWithGoogle,
   storeUserInfo,
-} from "./firebas";
+} from "./firebaseLoginSignup";
 
 const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
   const [step, setStep] = useState(1);
@@ -26,6 +26,16 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     general: "",
   });
   const intervalRef = useRef(null);
+  const recaptchaRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -69,6 +79,11 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
 
     setLoading(true);
     try {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+
       generateRecaptcha();
       const confirmationResult = await requestOTP(mobile, isLogin);
       if (confirmationResult.success) {
@@ -277,6 +292,10 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     setStep(1);
     setOtp(["", "", "", "", "", ""]);
     setErrors({ mobile: "", name: "", otp: "", terms: "", general: "" });
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
   };
 
   return {
