@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import LoginSignupPage from './auth/LoginSignupPage';
 import './ContactForm.css';
 
 const ContactForm = () => {
@@ -9,6 +10,7 @@ const ContactForm = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [subject, setSubject] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -53,14 +55,7 @@ const ContactForm = () => {
     e.preventDefault();
     
     if (!user) {
-      setSubmitStatus({
-        type: 'error',
-        message: 'Please login or signup to submit the form'
-      });
-      // Redirect to login page after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setShowLoginModal(true);
       return;
     }
 
@@ -111,18 +106,26 @@ const ContactForm = () => {
     }
   };
 
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    setSubmitStatus({
+      type: 'success',
+      message: 'Successfully logged in! You can now submit the form.'
+    });
+  };
+
   return (
-    <div className="contact-page">
+    <div className="contact-page_contact">
       {/* Header Section */}
-      <div className="contact-header">
+      <div className="contact-header_contact">
         <h1>Get In Touch</h1>
         <p>We'd love to hear from you! Reach out with questions, feedback, or just to say hello.</p>
       </div>
 
       {/* Contact Cards Section */}
-      <div className="contact-cards-container">
-        <div className="contact-card">
-          <div className="contact-icon">
+      <div className="contact-cards-container_contact">
+        <div className="contact-card_contact">
+          <div className="contact-icon_contact">
             <i className="fas fa-phone"></i>
           </div>
           <h3>Call Us</h3>
@@ -130,8 +133,8 @@ const ContactForm = () => {
           <a href="tel:+919876543210">+91 98765 43210</a>
         </div>
 
-        <div className="contact-card">
-          <div className="contact-icon">
+        <div className="contact-card_contact">
+          <div className="contact-icon_contact">
             <i className="fas fa-envelope"></i>
           </div>
           <h3>Email Us</h3>
@@ -139,8 +142,8 @@ const ContactForm = () => {
           <a href="mailto:hello@slurpinsage.com">hello@slurpinsage.com</a>
         </div>
 
-        <div className="contact-card">
-          <div className="contact-icon">
+        <div className="contact-card_contact">
+          <div className="contact-icon_contact">
             <i className="fas fa-map-marker-alt"></i>
           </div>
           <h3>Visit Us</h3>
@@ -150,27 +153,33 @@ const ContactForm = () => {
       </div>
 
       {/* Message and Location Section */}
-      <div className="contact-content-container">
+      <div className="contact-content-container_contact">
         {/* Message Form Section */}
-        <div className="message-section">
+        <div className="message-section_contact">
           <h2>Send Us a Message</h2>
           <p>Have a question about our smoothies, ingredients, or locations? Fill out the form below and we'll get back to you as soon as possible.</p>
           
           {submitStatus.message && (
-            <div className={`submit-status ${submitStatus.type}`}>
+            <div className={`submit-status_contact ${submitStatus.type}`}>
               {submitStatus.message}
             </div>
           )}
 
           {!user && (
-            <div className="login-notice">
-              Please <a href="/login">login</a> or <a href="/signup">signup</a> to submit the form.
+            <div className="login-notice_contact">
+              Please login or signup to submit the form.
+              <button 
+                className="login-btn_contact"
+                onClick={() => setShowLoginModal(true)}
+              >
+                Login / Signup
+              </button>
             </div>
           )}
           
-          <form onSubmit={handleSubmit} className="contact-form">
-            <div className="form-row">
-              <div className="form-group">
+          <form onSubmit={handleSubmit} className="contact-form_contact">
+            <div className="form-row_contact">
+              <div className="form-group_contact">
                 <label htmlFor="firstName">First Name</label>
                 <input 
                   type="text" 
@@ -183,7 +192,7 @@ const ContactForm = () => {
                   disabled={loading}
                 />
               </div>
-              <div className="form-group">
+              <div className="form-group_contact">
                 <label htmlFor="lastName">Last Name</label>
                 <input 
                   type="text" 
@@ -198,7 +207,7 @@ const ContactForm = () => {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group_contact">
               <label htmlFor="email">Email Address</label>
               <input 
                 type="email" 
@@ -212,7 +221,7 @@ const ContactForm = () => {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group_contact">
               <label htmlFor="phone">Phone Number</label>
               <input 
                 type="tel" 
@@ -226,12 +235,12 @@ const ContactForm = () => {
                 maxLength={10}
                 disabled={loading}
               />
-              {phoneError && <div className="form-error">{phoneError}</div>}
+              {phoneError && <div className="form-error_contact">{phoneError}</div>}
             </div>
 
-            <div className="form-group">
+            <div className="form-group_contact">
               <label htmlFor="subject">Subject</label>
-              <div className="custom-select">
+              <div className="custom-select_contact">
                 <select 
                   id="subject" 
                   value={subject} 
@@ -249,7 +258,7 @@ const ContactForm = () => {
               </div>
             </div>
 
-            <div className="form-group">
+            <div className="form-group_contact">
               <label htmlFor="message">Message</label>
               <textarea 
                 id="message" 
@@ -263,7 +272,7 @@ const ContactForm = () => {
               ></textarea>
             </div>
 
-            <div className="form-group checkbox-group">
+            <div className="form-group_contact checkbox-group_contact">
               <input 
                 type="checkbox" 
                 id="newsletter" 
@@ -277,7 +286,7 @@ const ContactForm = () => {
 
             <button 
               type="submit" 
-              className="send-message-btn"
+              className="send-message-btn_contact"
               disabled={loading || !user}
             >
               {loading ? 'Sending...' : 'Send Message'}
@@ -287,15 +296,15 @@ const ContactForm = () => {
         </div>
 
         {/* Location Section */}
-        <div className="location-section">
+        <div className="location-section_contact">
           <h2>Find Us</h2>
           <p>Visit our flagship store in downtown Healthyville. We're open 7 days a week from 7am to 8pm.</p>
           
-          <div className="store-details">
+          <div className="store-details_contact">
             <h3>SlurpinSage - Flagship Store</h3>
             <address>123 Green Street, Healthyville, CA 92210</address>
             
-            <div className="store-hours">
+            <div className="store-hours_contact">
               <h4>Hours:</h4>
               <ul>
                 <li><span>Monday - Friday:</span> 7am - 8pm</li>
@@ -304,13 +313,13 @@ const ContactForm = () => {
               </ul>
             </div>
             
-            <div className="store-contact">
+            <div className="store-contact_contact">
               <h4>Contact:</h4>
               <p><span>Phone:</span> +91 98765 43210</p>
               <p><span>Email:</span> <a href="mailto:flagship@slurpinsage.com">flagship@slurpinsage.com</a></p>
             </div>
             
-            <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="directions-btn">
+            <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="directions-btn_contact">
               <i className="fas fa-directions"></i> Get Directions
             </a>
           </div>
@@ -318,53 +327,63 @@ const ContactForm = () => {
       </div>
 
       {/* FAQ Section */}
-      <div className="faq-section">
+      <div className="faq-section_contact">
         <h2>Frequently Asked Questions</h2>
         
-        <div className="faq-container">
-          <details className="faq-item">
+        <div className="faq-container_contact">
+          <details className="faq-item_contact">
             <summary>Do you offer catering services?</summary>
-            <div className="faq-content">
+            <div className="faq-content_contact">
               <p>Yes, we offer catering for events of all sizes. Please contact us at least 48 hours in advance to discuss your needs and place an order.</p>
             </div>
           </details>
           
-          <details className="faq-item">
+          <details className="faq-item_contact">
             <summary>Can I customize my smoothie?</summary>
-            <div className="faq-content">
+            <div className="faq-content_contact">
               <p>Absolutely! You can customize any of our smoothies with additional ingredients or substitutions. Just let us know your preferences when ordering.</p>
             </div>
           </details>
           
-          <details className="faq-item">
+          <details className="faq-item_contact">
             <summary>Do you have options for dietary restrictions?</summary>
-            <div className="faq-content">
+            <div className="faq-content_contact">
               <p>We offer a variety of options for different dietary needs including vegan, gluten-free, dairy-free, and low-sugar options. Our staff can help you find the perfect smoothie for your dietary requirements.</p>
             </div>
           </details>
           
-          <details className="faq-item">
+          <details className="faq-item_contact">
             <summary>How can I join your rewards program?</summary>
-            <div className="faq-content">
+            <div className="faq-content_contact">
               <p>You can join our rewards program by downloading our mobile app or signing up in-store. You'll earn points with every purchase that can be redeemed for free smoothies and exclusive offers.</p>
             </div>
           </details>
           
-          <details className="faq-item">
+          <details className="faq-item_contact">
             <summary>Are you hiring?</summary>
-            <div className="faq-content">
+            <div className="faq-content_contact">
               <p>We're always looking for passionate team members! Check our Careers page for current openings or drop by the store with your resume.</p>
             </div>
           </details>
         </div>
         
-        <div className="extra-help">
+        <div className="extra-help_contact">
           <p>Don't see your question here?</p>
-          <button className="ask-directly-btn">
+          <button className="ask-directly-btn_contact">
             Ask Us Directly <i className="fas fa-chevron-right"></i>
           </button>
         </div>
       </div>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            <LoginSignupPage onSuccess={handleLoginSuccess} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
