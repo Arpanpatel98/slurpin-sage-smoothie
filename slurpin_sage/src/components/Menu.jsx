@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { auth } from '../firebase';
-import { useCart } from '../context/CartContext';
-import CartPopup from "./CartPopup";
+import { useCart } from "../context/CartContext";
 import ProductCustomization from "./ProductCustomization";
-import LoginSignupPage from "./auth/LoginSignupPage";
 import "./Menu.css";
 
 export default function Menu() {
@@ -14,31 +11,22 @@ export default function Menu() {
   const [items, setItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState("");
   const [loading, setLoading] = useState(true);
-  const [visibleItems, setVisibleItems] = useState(6); // For "Load More" functionality
-  const [showCartPopup, setShowCartPopup] = useState(false);
+  const [visibleItems, setVisibleItems] = useState(6);
   const [showCustomization, setShowCustomization] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [addedItem, setAddedItem] = useState(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
-  // Fetch categories from Firebase
+  // Set categories
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "categories"));
-        const firstDoc = querySnapshot.docs[0];
-        if (firstDoc) {
-          const categoryData = firstDoc.data();
-          if (Array.isArray(categoryData.name)) {
-            // Add "All Smoothies" as first option
-            setCategories(["All Smoothies", ...categoryData.name]);
-            setActiveCategory("All Smoothies");
-          }
-        }
+        const categoryList = ["All Smoothies", "smoothies", "milkshakes", "bowls"];
+        setCategories(categoryList);
+        setActiveCategory("All Smoothies");
       } catch (error) {
-        console.error("Error fetching categories:", error);
+        console.error("Error setting categories:", error);
         setCategories(["All Smoothies"]);
       } finally {
         setLoading(false);
@@ -47,130 +35,187 @@ export default function Menu() {
     fetchCategories();
   }, []);
 
-  // Fetch items from Firebase based on active category
+  // Fetch items and reviews from Firebase
   useEffect(() => {
-    const fetchItems = async () => {
+    const fetchItemsAndReviews = async () => {
       if (!activeCategory) return;
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "items"));
-        let itemsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          // Add default tags for demo
-          tags: doc.data().tags || [],
-          rating: doc.data().rating || (4 + Math.random()).toFixed(1),
-          reviewCount: doc.data().reviewCount || Math.floor(Math.random() * 100) + 10
-        }));
-        
-        // Filter by category unless "All Smoothies" is selected
-        if (activeCategory !== "All Smoothies") {
-          itemsData = itemsData.filter(
-            (item) =>
-              item.type &&
-              item.type.toLowerCase() === activeCategory.toLowerCase()
-          );
+        let itemsData = [];
+        const imageMap = {
+          'morning-glory-smoothie': 'greensmoothie.jpg',
+          'chocolate-delight': 'chocolate.jpg',
+          'acai-bowl': 'acai.jpg',
+          'tropical-paradise': 'tropical.jpg'
+        };
+
+        // Fetch products
+        const categoriesToFetch = activeCategory === "All Smoothies"
+          ? ["smoothies", "milkshakes", "bowls"]
+          : [activeCategory];
+
+        for (const cat of categoriesToFetch) {
+          const querySnapshot = await getDocs(collection(db, `products/config/${cat}`));
+          const categoryItems = await Promise.all(querySnapshot.docs.map(async (doc) => {
+            const productData = doc.data();
+            // Fetch reviews for this product
+            const reviewsRef = collection(db, 'product_reviews');
+            const q = query(reviewsRef, where('productId', '==', doc.id));
+            const reviewSnapshot = await getDocs(q);
+            let totalRating = 0;
+            let reviewCount = 0;
+
+            reviewSnapshot.forEach((reviewDoc) => {
+              const reviewData = reviewDoc.data();
+              totalRating += reviewData.rating || 0;
+              reviewCount += 1;
+            });
+
+            const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
+
+            return {
+              id: doc.id,
+              category: cat,
+              name: productData.productName || doc.id.replace(/-/g, ' ').toUpperCase(),
+              ingredients: Array.isArray(productData.ingredients)
+                ? productData.ingredients.join(', ')
+                : 'Ingredients not available',
+              price: productData.price || 0,
+              image: imageMap[doc.id] || 'greensmoothie.jpg',
+              tags: productData.tags || [],
+              averageRating,
+              totalReviews: reviewCount
+            };
+          }));
+          itemsData = [...itemsData, ...categoryItems];
         }
-        
+
         setItems(itemsData);
-        setVisibleItems(6); // Reset visible items when category changes
+        setVisibleItems(6);
       } catch (error) {
-        console.error("Error fetching items:", error);
-        setItems([]);
+        console.error("Error fetching items or reviews:", {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+        setItems([
+          {
+            id: "morning-glory-smoothie",
+            category: "smoothies",
+            name: "MORNING GLORY SMOOTHIE",
+            ingredients: "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
+            price: 299,
+            image: "greensmoothie.jpg",
+            tags: ["bestseller"],
+            averageRating: 5.0,
+            totalReviews: 1
+          },
+          {
+            id: "chocolate-delight",
+            category: "milkshakes",
+            name: "CHOCOLATE DELIGHT",
+            ingredients: "Milk, Cocoa Powder, Sugar, Vanilla Ice Cream, Chocolate Syrup",
+            price: 349,
+            image: "chocolate.jpg",
+            tags: [],
+            averageRating: 5.0,
+            totalReviews: 1
+          }
+        ]);
       } finally {
         setLoading(false);
       }
     };
-    fetchItems();
+    fetchItemsAndReviews();
   }, [activeCategory]);
 
   const handleAddToCart = (e, item) => {
-    e.stopPropagation(); // Prevent navigation when clicking the button
-    
-    // Check if user is authenticated
-    if (!auth.currentUser) {
-      // If not authenticated, show login modal
-      setShowLoginModal(true);
-      return;
-    }
-    
-    // If authenticated, proceed with adding to cart
+    e.stopPropagation();
     setSelectedItem(item);
     setShowCustomization(true);
   };
-  
-  const handleClosePopup = () => {
-    setShowCartPopup(false);
-    setAddedItem(null);
-  };
-  
+
   const handleCloseCustomization = () => {
     setShowCustomization(false);
     setSelectedItem(null);
   };
-  
+
   const loadMoreItems = () => {
-    setVisibleItems(prevVisible => prevVisible + 6);
+    setVisibleItems((prevVisible) => prevVisible + 6);
   };
-  
-  // Get item tag based on properties or name (for demo purposes)
+
   const getItemTag = (item) => {
     const nameLower = item.name.toLowerCase();
-    if (item.bestseller || nameLower.includes('green goddess')) return 'BESTSELLER';
-    if (item.seasonal || nameLower.includes('pumpkin') || nameLower.includes('citrus')) return 'SEASONAL';
+    if (item.tags.includes('bestseller') || nameLower.includes('green goddess')) return 'BESTSELLER';
+    if (item.tags.includes('seasonal') || nameLower.includes('pumpkin') || nameLower.includes('citrus')) return 'SEASONAL';
     if (nameLower.includes('protein')) return 'POST-WORKOUT';
     return null;
   };
-  
-  // Get health tags based on ingredients (for demo)
+
   const getHealthTags = (item) => {
     const tags = [];
     const ingredientsLower = (item.ingredients || '').toLowerCase();
-    
-    if (ingredientsLower.includes('spinach') || 
-        ingredientsLower.includes('kale') || 
-        !ingredientsLower.includes('milk') ||
-        ingredientsLower.includes('almond milk')) {
+
+    if (
+      ingredientsLower.includes('spinach') ||
+      ingredientsLower.includes('kale') ||
+      !ingredientsLower.includes('milk') ||
+      ingredientsLower.includes('almond milk')
+    ) {
       tags.push('vegan');
     }
-    
-    if (ingredientsLower.includes('spinach') || 
-        ingredientsLower.includes('kale') || 
-        ingredientsLower.includes('green')) {
+
+    if (
+      ingredientsLower.includes('spinach') ||
+      ingredientsLower.includes('kale') ||
+      ingredientsLower.includes('green')
+    ) {
       tags.push('detox');
     }
-    
+
     if (ingredientsLower.includes('protein')) {
       tags.push('high protein');
     }
-    
-    if (ingredientsLower.includes('immune') || 
-        ingredientsLower.includes('ginger') || 
-        ingredientsLower.includes('turmeric')) {
+
+    if (
+      ingredientsLower.includes('immune') ||
+      ingredientsLower.includes('ginger') ||
+      ingredientsLower.includes('turmeric')
+    ) {
       tags.push('immunity');
     }
-    
-    if (ingredientsLower.includes('anti-inflammatory') || 
-        ingredientsLower.includes('turmeric')) {
+
+    if (
+      ingredientsLower.includes('anti-inflammatory') ||
+      ingredientsLower.includes('turmeric')
+    ) {
       tags.push('anti-inflammatory');
     }
-    
+
     return tags;
   };
 
-  // Render star rating
-  const renderRating = (rating, reviewCount) => {
-    rating = parseFloat(rating) || 4.5;
+  const renderRating = (averageRating, totalReviews) => {
+    const rating = parseFloat(averageRating) || 0;
     return (
       <div className="rating-container">
         <div className="stars">
           {[1, 2, 3, 4, 5].map((star) => (
-            <span key={star} className={star <= Math.floor(rating) ? 'star filled' : star <= rating ? 'star half-filled' : 'star'}>
+            <span
+              key={star}
+              className={
+                star <= Math.floor(rating)
+                  ? 'star filled'
+                  : star === Math.ceil(rating) && rating % 1 >= 0.5
+                  ? 'star half-filled'
+                  : 'star'
+              }
+            >
               ★
             </span>
           ))}
         </div>
-        <span className="rating-text">{rating} ({reviewCount || '42'})</span>
+        <span className="rating-text">{rating.toFixed(1)} ({totalReviews || 0})</span>
       </div>
     );
   };
@@ -212,12 +257,12 @@ export default function Menu() {
               items.slice(0, visibleItems).map((item) => {
                 const itemTag = getItemTag(item);
                 const healthTags = getHealthTags(item);
-                
+
                 return (
                   <div
                     className="menu-card"
-                    key={item.id}
-                    onClick={() => navigate(`/item/${item.id}`)}
+                    key={`${item.category}-${item.id}`}
+                    onClick={() => navigate(`/products/${item.category}/${item.id}`)}
                   >
                     {itemTag && <div className="item-tag">{itemTag}</div>}
                     <div className="menu-card-image">
@@ -233,23 +278,28 @@ export default function Menu() {
                     <div className="menu-card-content">
                       <div className="menu-card-header">
                         <h2>{item.name}</h2>
-                        <div className="price">₹{item.price.toFixed(2)}</div>
+                        <div className="price">₹{item.price}</div>
                       </div>
                       <p className="ingredients">{item.ingredients}</p>
-                      
+
                       {healthTags.length > 0 && (
                         <div className="health-tags">
-                          {healthTags.map(tag => (
-                            <span key={tag} className={`health-tag ${tag.replace(/\s+/g, '-')}`}>{tag}</span>
+                          {healthTags.map((tag) => (
+                            <span
+                              key={tag}
+                              className={`health-tag ${tag.replace(/\s+/g, '-')}`}
+                            >
+                              {tag}
+                            </span>
                           ))}
                         </div>
                       )}
-                      
-                      {renderRating(item.rating, item.reviewCount)}
-                      
+
+                      {renderRating(item.averageRating, item.totalReviews)}
+
                       <div className="button-wrapper">
-                        <button 
-                          className="add-to-cart-btn" 
+                        <button
+                          className="add-to-cart-btn"
                           onClick={(e) => handleAddToCart(e, item)}
                         >
                           Add to Cart
@@ -261,7 +311,7 @@ export default function Menu() {
               })
             )}
           </div>
-          
+
           {items.length > visibleItems && (
             <div className="load-more-container">
               <button className="load-more-button" onClick={loadMoreItems}>
@@ -271,56 +321,52 @@ export default function Menu() {
           )}
         </>
       )}
-      
+
       <div className="nutrition-section">
         <h2>Nutrition Information</h2>
         <p>We believe in transparency. Here's what makes our smoothies so good for you.</p>
-        
+
         <div className="nutrition-cards">
           <div className="nutrition-card">
             <div className="nutrition-icon fresh-icon">
               <i className="fas fa-leaf"></i>
             </div>
             <h3>Fresh Ingredients</h3>
-            <p>We source local, organic produce whenever possible to ensure maximum nutrition and flavor in every sip.</p>
+            <p>
+              We source local, organic produce whenever possible to ensure maximum
+              nutrition and flavor in every sip.
+            </p>
           </div>
-          
+
           <div className="nutrition-card">
             <div className="nutrition-icon nutrient-icon">
               <i className="fas fa-seedling"></i>
             </div>
             <h3>Nutrient Dense</h3>
-            <p>Our smoothies are packed with vitamins, minerals, and antioxidants to support your overall health and wellbeing.</p>
+            <p>
+              Our smoothies are packed with vitamins, minerals, and antioxidants to
+              support your overall health and wellbeing.
+            </p>
           </div>
-          
+
           <div className="nutrition-card">
             <div className="nutrition-icon sugar-icon">
               <i className="fas fa-apple-alt"></i>
             </div>
             <h3>No Added Sugar</h3>
-            <p>We rely on the natural sweetness of fruits and vegetables, with no refined sugars or artificial sweeteners.</p>
+            <p>
+              We rely on the natural sweetness of fruits and vegetables, with no
+              refined sugars or artificial sweeteners.
+            </p>
           </div>
         </div>
       </div>
-      
-      {showCartPopup && addedItem && (
-        <CartPopup item={addedItem} onClose={handleClosePopup} />
-      )}
-      
-      {showCustomization && selectedItem && (
-        <ProductCustomization 
-          product={selectedItem} 
-          onClose={handleCloseCustomization} 
-        />
-      )}
 
-      {showLoginModal && (
-        <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
-            <LoginSignupPage onSuccess={() => setShowLoginModal(false)} />
-          </div>
-        </div>
+      {showCustomization && selectedItem && (
+        <ProductCustomization
+          product={selectedItem}
+          onClose={handleCloseCustomization}
+        />
       )}
     </div>
   );

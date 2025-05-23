@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 import './ContactForm.css';
 
 const ContactForm = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState({ type: '', message: '' });
   const [subject, setSubject] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -12,6 +19,21 @@ const ContactForm = () => {
     newsletter: false
   });
   const [phoneError, setPhoneError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+      if (user) {
+        // Pre-fill email if user is logged in
+        setFormData(prev => ({
+          ...prev,
+          email: user.email || ''
+        }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -27,25 +49,66 @@ const ContactForm = () => {
     return /^[6-9]\d{9}$/.test(phone);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!user) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'Please login or signup to submit the form'
+      });
+      // Redirect to login page after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      return;
+    }
+
     if (!isValidIndianPhone(formData.phone)) {
       setPhoneError('Please enter a valid 10-digit Indian phone number starting with 6-9.');
       return;
     }
-    // Add form submission logic here
-    console.log(formData);
-    // Reset form after submission
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      message: '',
-      newsletter: false
-    });
-    setSubject('');
-    setPhoneError('');
+
+    setLoading(true);
+    setSubmitStatus({ type: '', message: '' });
+
+    try {
+      const contactData = {
+        ...formData,
+        subject,
+        userId: user.uid,
+        userEmail: user.email,
+        createdAt: serverTimestamp(),
+        status: 'new'
+      };
+
+      await addDoc(collection(db, 'contacts'), contactData);
+
+      setSubmitStatus({
+        type: 'success',
+        message: 'Thank you for your message! We will get back to you soon.'
+      });
+
+      // Reset form after successful submission
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        message: '',
+        newsletter: false
+      });
+      setSubject('');
+      setPhoneError('');
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus({
+        type: 'error',
+        message: 'Failed to submit form. Please try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,6 +156,18 @@ const ContactForm = () => {
           <h2>Send Us a Message</h2>
           <p>Have a question about our smoothies, ingredients, or locations? Fill out the form below and we'll get back to you as soon as possible.</p>
           
+          {submitStatus.message && (
+            <div className={`submit-status ${submitStatus.type}`}>
+              {submitStatus.message}
+            </div>
+          )}
+
+          {!user && (
+            <div className="login-notice">
+              Please <a href="/login">login</a> or <a href="/signup">signup</a> to submit the form.
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="contact-form">
             <div className="form-row">
               <div className="form-group">
@@ -105,6 +180,7 @@ const ContactForm = () => {
                   value={formData.firstName}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="form-group">
@@ -117,12 +193,13 @@ const ContactForm = () => {
                   value={formData.lastName}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email Address <span style={{color:'#aaa', fontWeight:400}}>(optional)</span></label>
+              <label htmlFor="email">Email Address</label>
               <input 
                 type="email" 
                 id="email" 
@@ -130,6 +207,8 @@ const ContactForm = () => {
                 placeholder="your.email@example.com" 
                 value={formData.email}
                 onChange={handleChange}
+                required
+                disabled={loading || user}
               />
             </div>
 
@@ -145,8 +224,9 @@ const ContactForm = () => {
                 required
                 pattern="[6-9]{1}[0-9]{9}"
                 maxLength={10}
+                disabled={loading}
               />
-              {phoneError && <div className="form-error" style={{color:'red', fontSize:'0.95em', marginTop:'0.3em'}}>{phoneError}</div>}
+              {phoneError && <div className="form-error">{phoneError}</div>}
             </div>
 
             <div className="form-group">
@@ -157,6 +237,7 @@ const ContactForm = () => {
                   value={subject} 
                   onChange={(e) => setSubject(e.target.value)}
                   required
+                  disabled={loading}
                 >
                   <option value="" disabled>Select a subject</option>
                   <option value="general">General Inquiry</option>
@@ -178,6 +259,7 @@ const ContactForm = () => {
                 value={formData.message}
                 onChange={handleChange}
                 required
+                disabled={loading}
               ></textarea>
             </div>
 
@@ -188,13 +270,18 @@ const ContactForm = () => {
                 name="newsletter"
                 checked={formData.newsletter}
                 onChange={handleChange}
+                disabled={loading}
               />
               <label htmlFor="newsletter">Subscribe to our newsletter for updates on new flavors and promotions</label>
             </div>
 
-            <button type="submit" className="send-message-btn">
-              Send Message
-              <i className="fas fa-arrow-right"></i>
+            <button 
+              type="submit" 
+              className="send-message-btn"
+              disabled={loading || !user}
+            >
+              {loading ? 'Sending...' : 'Send Message'}
+              {!loading && <i className="fas fa-arrow-right"></i>}
             </button>
           </form>
         </div>

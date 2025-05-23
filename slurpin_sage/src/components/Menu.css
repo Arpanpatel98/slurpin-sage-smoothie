@@ -589,3 +589,24 @@
     height: 480px;
   }
 }
+.rating-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stars {
+  display: flex;
+  gap: 3px; /* Tighter spacing to match CustomerReviews */
+}
+
+.star {
+  color: var(--sage-100);
+  width: 18px; /* Slightly larger to match CustomerReviews */
+  height: 18px;
+}
+
+.star.filled {
+  color: var(--sage-500);
+}

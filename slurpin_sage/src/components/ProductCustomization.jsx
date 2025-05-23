@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
+import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import './ProductCustomization.css';
 
 const ProductCustomization = ({ product, onClose }) => {
   const { addToCart } = useCart();
-  const [base, setBase] = useState('Regular Milk');
+  const [base, setBase] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [selectedBoosters, setSelectedBoosters] = useState([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [bases, setBases] = useState([]);
+  const [toppings, setToppings] = useState([]);
+  const [boosters, setBoosters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Default product if none provided
+  // Default product
   const defaultProduct = {
-    id: 'green-goddess',
-    name: 'Green Goddess',
+    id: 'morning-glory-smoothie',
+    category: 'smoothies',
+    name: 'MORNING GLORY SMOOTHIE',
     image: 'greensmoothie.jpg',
     price: 299,
     rating: 5,
@@ -22,22 +30,63 @@ const ProductCustomization = ({ product, onClose }) => {
 
   const currentProduct = product || defaultProduct;
 
-  // Define toppings with whole number prices
-  const toppings = [
-    { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
-    { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
-    { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
-    { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
-    { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 }
-  ];
+  useEffect(() => {
+    const fetchCustomizations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch bases
+        const basesRef = collection(db, 'customization_options/config/bases');
+        const basesSnapshot = await getDocs(basesRef);
+        const basesData = basesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBases(basesData);
 
-  // Define boosters with whole number prices
-  const boosters = [
-    { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
-    { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
-    { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
-    { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 }
-  ];
+        // Fetch toppings
+        const toppingsRef = collection(db, 'customization_options/config/toppings');
+        const toppingsSnapshot = await getDocs(toppingsRef);
+        const toppingsData = toppingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setToppings(toppingsData);
+
+        // Fetch boosters
+        const boostersRef = collection(db, 'customization_options/config/boosters');
+        const boostersSnapshot = await getDocs(boostersRef);
+        const boostersData = boostersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBoosters(boostersData);
+
+        // Set default base
+        if (basesData.length > 0) {
+          setBase(basesData[0].name);
+        }
+      } catch (err) {
+        console.error('Error fetching customizations:', err);
+        setError('Failed to load customization options. Using defaults.');
+        // Fallback data
+        setBases([
+          { id: 'regular-milk', name: 'Regular Milk', price: 0 },
+          { id: 'coconut-milk', name: 'Coconut Milk', price: 0 },
+          { id: 'almond-milk', name: 'Almond Milk', price: 0 },
+          { id: 'oat-milk', name: 'Oat Milk', price: 0 }
+        ]);
+        setToppings([
+          { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
+          { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
+          { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
+          { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
+          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 }
+        ]);
+        setBoosters([
+          { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
+          { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
+          { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
+          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomizations();
+  }, []);
 
   const handleBaseChange = (newBase) => {
     setBase(newBase);
@@ -79,33 +128,44 @@ const ProductCustomization = ({ product, onClose }) => {
     setQuantity(quantity + 1);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    if (!auth.currentUser) {
+      console.error('User not authenticated');
+      return;
+    }
+
     // Calculate total price
     let totalPrice = currentProduct.price;
-    
-    // Add toppings
-    selectedToppings.forEach(topping => {
-      totalPrice += topping.price;
-    });
-    
-    // Add boosters
-    selectedBoosters.forEach(booster => {
-      totalPrice += booster.price;
-    });
-    
+    selectedToppings.forEach(topping => totalPrice += topping.price);
+    selectedBoosters.forEach(booster => totalPrice += booster.price);
+    totalPrice *= quantity;
+
     const customizedProduct = {
-      ...currentProduct,
+      productId: currentProduct.id,
+      category: currentProduct.category || 'smoothies',
+      name: currentProduct.name,
       price: totalPrice,
-      quantity: quantity,
-      base: base,
+      quantity,
+      base,
       toppings: selectedToppings,
       boosters: selectedBoosters,
-      specialInstructions: specialInstructions,
-      customized: true
+      specialInstructions,
+      customized: true,
+      timestamp: serverTimestamp()
     };
-    
-    addToCart(customizedProduct);
-    onClose();
+
+    try {
+      // Store in Firestore
+      const cartItemRef = doc(collection(db, `cart_items/${auth.currentUser.uid}`));
+      await setDoc(cartItemRef, customizedProduct);
+
+      // Add to cart context
+      addToCart({ ...customizedProduct, id: cartItemRef.id });
+      onClose();
+    } catch (err) {
+      console.error('Error saving to cart:', err);
+      setError('Failed to add to cart. Please try again.');
+    }
   };
 
   const isToppingSelected = (id) => {
@@ -116,32 +176,33 @@ const ProductCustomization = ({ product, onClose }) => {
     return selectedBoosters.some(booster => booster.id === id);
   };
 
-  // Generate star rating
   const renderStars = (rating) => {
     return Array(5).fill(0).map((_, index) => (
       <span key={index} className={index < rating ? "star filled" : "star"}>★</span>
     ));
   };
 
-  // Calculate total price
   const calculateTotalPrice = () => {
     let basePrice = currentProduct.price;
     let boostersPrice = selectedBoosters.reduce((total, booster) => total + booster.price, 0);
     let toppingsPrice = selectedToppings.reduce((total, topping) => total + topping.price, 0);
-    
-    // Calculate total for single item
-    let singleItemTotal = basePrice + boostersPrice + toppingsPrice;
-    
-    // Multiply by quantity
-    return singleItemTotal * quantity;
+    return (basePrice + boostersPrice + toppingsPrice) * quantity;
   };
+
+  if (loading) {
+    return <div className="customization-loading">Loading customization options...</div>;
+  }
+
+  if (error) {
+    return <div className="customization-error">{error}</div>;
+  }
 
   return (
     <div className="customization-overlay" onClick={onClose}>
       <div className="customization-container" onClick={(e) => e.stopPropagation()}>
         <div className="customization-header">
-          <h2>Customize Your Smoothie</h2>
-          <button className="close-button" onClick={onClose}>&times;</button>
+          <h2>Customize Your {currentProduct.name}</h2>
+          <button className="close-button" onClick={onClose}>×</button>
         </div>
         
         <div className="product-info">
@@ -169,30 +230,15 @@ const ProductCustomization = ({ product, onClose }) => {
         <div className="customization-section">
           <h4>Base</h4>
           <div className="base-options">
-            <button 
-              className={`base-option ${base === 'Regular Milk' ? 'selected' : ''}`}
-              onClick={() => handleBaseChange('Regular Milk')}
-            >
-              Regular Milk
-            </button>
-            <button 
-              className={`base-option ${base === 'Coconut Milk' ? 'selected' : ''}`}
-              onClick={() => handleBaseChange('Coconut Milk')}
-            >
-              Coconut Milk
-            </button>
-            <button 
-              className={`base-option ${base === 'Almond Milk' ? 'selected' : ''}`}
-              onClick={() => handleBaseChange('Almond Milk')}
-            >
-              Almond Milk
-            </button>
-            <button 
-              className={`base-option ${base === 'Oat Milk' ? 'selected' : ''}`}
-              onClick={() => handleBaseChange('Oat Milk')}
-            >
-              Oat Milk
-            </button>
+            {bases.map(baseOption => (
+              <button 
+                key={baseOption.id}
+                className={`base-option ${base === baseOption.name ? 'selected' : ''}`}
+                onClick={() => handleBaseChange(baseOption.name)}
+              >
+                {baseOption.name}
+              </button>
+            ))}
           </div>
         </div>
         
@@ -209,6 +255,7 @@ const ProductCustomization = ({ product, onClose }) => {
                     type="checkbox" 
                     checked={isToppingSelected(topping.id)} 
                     onChange={() => handleToppingToggle(topping)}
+                    disabled={!isToppingSelected(topping.id) && selectedToppings.length >= 3}
                   />
                   <span className="checkmark"></span>
                   <div className="topping-info">
@@ -235,6 +282,7 @@ const ProductCustomization = ({ product, onClose }) => {
                     type="checkbox" 
                     checked={isBoosterSelected(booster.id)} 
                     onChange={() => handleBoosterToggle(booster)}
+                    disabled={!isBoosterSelected(booster.id) && selectedBoosters.length >= 2}
                   />
                   <span className="checkmark"></span>
                   <div className="booster-info">
@@ -323,4 +371,4 @@ const ProductCustomization = ({ product, onClose }) => {
   );
 };
 
-export default ProductCustomization; 
+export default ProductCustomization;

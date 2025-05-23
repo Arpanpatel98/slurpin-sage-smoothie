@@ -504,3 +504,66 @@
     padding: 1.5rem;
   }
 }
+
+.submit-status {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.submit-status.success {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.submit-status.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.login-notice {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.login-notice a {
+  color: #92400e;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.login-notice a:hover {
+  color: #78350f;
+}
+
+.form-error {
+  color: #dc2626;
+  font-size: 0.95em;
+  margin-top: 0.3em;
+}
+
+.send-message-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.send-message-btn:disabled:hover {
+  background-color: #9ca3af;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}

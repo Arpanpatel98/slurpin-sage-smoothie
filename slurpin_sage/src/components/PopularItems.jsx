@@ -201,7 +201,7 @@ const PopularItems = () => {
                 className="add-to-cart-btn"
                 onClick={(e) => handleAddToCart(e, item)}
               >
-                Add to Order
+                Add to Cart
               </button>
             </div>
           </div>

@@ -17,6 +17,12 @@
   opacity: 0.5;
 }
 
+.container_Item_des {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
 .hero-content_Item_des {
   display: flex;
   flex-direction: column;
@@ -57,10 +63,11 @@
   aspect-ratio: 1;
 }
 
-.smoothie-svg_Item_des {
+.smoothie-placeholder_Item_des img {
   width: 100%;
   height: 100%;
-  color: var(--sage-500);
+  object-fit: cover;
+  border-radius: 8px;
 }
 
 .hero-details_Item_des {
@@ -99,23 +106,7 @@
   font-size: 18px;
   color: #6b7280;
   margin-bottom: 24px;
-  min-height: 54px; /* Ensure consistent spacing if description is missing */
-}
-
-.tags_Item_des {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.tag_Item_des {
-  padding: 4px 12px;
-  background-color: var(--sage-100);
-  color: var(--sage-700);
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 500;
+  min-height: 54px;
 }
 
 .price-section_Item_des {
@@ -126,25 +117,10 @@
 }
 
 .price_Item_des {
-  font-size: 32px; /* Slightly larger for prominence */
+  font-size: 32px;
   font-weight: 700;
   color: var(--sage-700);
   letter-spacing: -0.5px;
-}
-
-.original-price_Item_des {
-  font-size: 16px;
-  color: #6b7280;
-  text-decoration: line-through;
-}
-
-.discount_Item_des {
-  padding: 4px 8px;
-  background-color: #fee2e2;
-  color: #dc2626;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .actions_Item_des {
@@ -214,6 +190,47 @@
   background-color: var(--sage-600);
 }
 
+/* .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: auto;
+  position: relative;
+} */
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+.error_Item_des {
+  color: #dc2626;
+  text-align: center;
+}
+
 @media (min-width: 768px) {
   .hero-content_Item_des {
     flex-direction: row;
@@ -233,5 +250,16 @@
   }
   .add-to-cart_Item_des {
     flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  .modal-overlay {
+    padding: 0;
   }
 }
