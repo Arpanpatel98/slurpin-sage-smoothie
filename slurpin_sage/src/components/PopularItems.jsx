@@ -198,7 +198,7 @@ const PopularItems = () => {
             <div className="item-footer">
               <span className="item-price">₹{item.price}</span>
               <button 
-                className="add-to-cart-btn"
+                className="add-to-cart-btn_popularItem"
                 onClick={(e) => handleAddToCart(e, item)}
               >
                 Add to Cart
