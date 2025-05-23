@@ -36,35 +36,46 @@ function About() {
       {/* Hero Section */}
       <div className="about-hero" style={heroStyle} data-aos="fade-in">
         <div className="about-hero-content">
-          <h1 data-aos="fade-up">Our Story</h1>
-          <p data-aos="fade-up" data-aos-delay="200">Nourishing bodies and minds with nature's best ingredients since 2015.</p>
-          <button className="learn-more-btn" data-aos="fade-up" data-aos-delay="300">Learn More</button>
+          <h1 data-aos="fade-up">About Us</h1>
         </div>
       </div>
 
       {/* Mission Section */}
       <div className="mission-section">
         <div className="mission-text" data-aos="fade-right" data-aos-duration="1200">
-          <h2>Our Mission</h2>
+          <h2>Our Story</h2>
           <p>
-            At Slurpin'Sage, we believe that what you put into your body matters. Our mission is to 
-            create nutrition-packed, accessible, and convenient for everyone. We're committed to 
-            sustainable practices and conscious sourcing. We've created a space that is not only 
-            taste-tempting but also fuels your body with the nutrients it needs.
+            Slurpin' Sage was born out of a simple yet powerful vision: to make healthy food accessible 
+            and affordable for everyone. We believe that eating well shouldn't be a luxury but a way of life. 
+            With this mission in mind, we set out to create delicious, preservative-free smoothies and juices 
+            that nourish the body without breaking the bank.
           </p>
           <p>
-            Every smoothie we craft is a testament to our dedication to health, wellness, and 
-            sustainability. We're not just selling drinks – we're promoting a lifestyle that values both 
-            personal health and the health of our planet.
+            Our journey began with a passion for pure, wholesome ingredients and a commitment to crafting 
+            beverages that are as fresh as they are flavorful. We noticed that too many drinks on the market 
+            were packed with artificial additives, excessive sugars, and overpriced promises of health. 
+            That's when we decided to do things differently.
           </p>
         </div>
-        <div className="mission-graphic" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="200">
-          <div className="circular-graphic">
-            <div className="inner-content">
-              <h3>Nourish. Energize. Thrive.</h3>
-              <p>Our guiding principles in every smoothie we create.</p>
-            </div>
-          </div>
+        <div className="mission-text" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="200">
+          <h2>Why We Do It</h2>
+          <p>
+            At Slurpin' Sage, we believe that healthy living should be effortless, exciting, and, above all, 
+            delicious. We're here to prove that nutritious choices don't have to be bland, boring, or expensive. 
+            Every food that we create is a celebration of nature's best—pure, fresh, and bursting with flavor.
+          </p>
+          <p>
+            In a world filled with artificial ingredients and overpriced health fads, we bring you something 
+            refreshingly real. Our mission is to make wellness second nature, seamlessly fitting into your 
+            lifestyle without the stress of reading labels or worrying about hidden additives. We want to make 
+            it easier for you to fuel your day with ingredients your body loves—without compromising on taste, 
+            convenience, or your budget.
+          </p>
+          <p>
+            Whether you're kickstarting your morning, recovering from a workout, or simply craving a feel-good 
+            treat, Slurpin' Sage is here to serve up goodness in every sip. Because when health and happiness 
+            come together in one cup, every moment feels a little brighter.
+          </p>
         </div>
       </div>
 
