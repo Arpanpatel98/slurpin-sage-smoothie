@@ -6,11 +6,16 @@ import './ProductCustomization.css';
 
 const ProductCustomization = ({ product, onClose }) => {
   const { addToCart } = useCart();
-  const [base, setBase] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [selectedToppings, setSelectedToppings] = useState([]);
-  const [selectedBoosters, setSelectedBoosters] = useState([]);
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const isEditMode = product && product.customized;
+
+  // Initialize state with preselected customizations for edit mode
+  const [base, setBase] = useState(isEditMode ? product.base : '');
+  const [quantity, setQuantity] = useState(isEditMode ? product.quantity : 1);
+  const [selectedToppings, setSelectedToppings] = useState(isEditMode ? product.toppings : []);
+  const [selectedBoosters, setSelectedBoosters] = useState(isEditMode ? product.boosters : []);
+  const [specialInstructions, setSpecialInstructions] = useState(
+    isEditMode ? product.specialInstructions || '' : ''
+  );
   const [bases, setBases] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [boosters, setBoosters] = useState([]);
@@ -53,8 +58,8 @@ const ProductCustomization = ({ product, onClose }) => {
         const boostersData = boostersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setBoosters(boostersData);
 
-        // Set default base
-        if (basesData.length > 0) {
+        // Set default base only if not in edit mode
+        if (!isEditMode && basesData.length > 0) {
           setBase(basesData[0].name);
         }
       } catch (err) {
@@ -130,7 +135,12 @@ const ProductCustomization = ({ product, onClose }) => {
 
   const handleAddToCart = async () => {
     if (!auth.currentUser) {
-      console.error('User not authenticated');
+      setError('Please sign in to add items to your cart.');
+      return;
+    }
+
+    if (!base) {
+      setError('Please select a base for your smoothie.');
       return;
     }
 
@@ -156,8 +166,10 @@ const ProductCustomization = ({ product, onClose }) => {
 
     try {
       // Store in Firestore
-      const cartItemRef = doc(collection(db, `cart_items/${auth.currentUser.uid}`));
-      await setDoc(cartItemRef, customizedProduct);
+      const cartItemRef = isEditMode
+        ? doc(db, `cart_items/${auth.currentUser.uid}/items`, currentProduct.id)
+        : doc(collection(db, `cart_items/${auth.currentUser.uid}/items`));
+      await setDoc(cartItemRef, customizedProduct, { merge: isEditMode });
 
       // Add to cart context
       addToCart({ ...customizedProduct, id: cartItemRef.id });
@@ -193,13 +205,10 @@ const ProductCustomization = ({ product, onClose }) => {
     return <div className="customization-loading">Loading customization options...</div>;
   }
 
-  if (error) {
-    return <div className="customization-error">{error}</div>;
-  }
-
   return (
     <div className="customization-overlay" onClick={onClose}>
       <div className="customization-container" onClick={(e) => e.stopPropagation()}>
+        {error && <div className="customization-error">{error}</div>}
         <div className="customization-header">
           <h2>Customize Your {currentProduct.name}</h2>
           <button className="close-button" onClick={onClose}>×</button>
@@ -219,7 +228,7 @@ const ProductCustomization = ({ product, onClose }) => {
           
           <div className="product-details">
             <h3>{currentProduct.name}</h3>
-            <p className="product-base">{base}</p>
+            <p className="product-base">{base || 'Select a base'}</p>
             <div className="product-rating">
               {renderStars(currentProduct.rating)}
               <span className="review-count">({currentProduct.reviewCount})</span>
@@ -363,7 +372,7 @@ const ProductCustomization = ({ product, onClose }) => {
             className="add-to-cart-button" 
             onClick={handleAddToCart}
           >
-            Add to Cart - ₹{calculateTotalPrice()}
+            {isEditMode ? 'Update Cart' : 'Add to Cart'} - ₹{calculateTotalPrice()}
           </button>
         </div>
       </div>

@@ -9,12 +9,12 @@ import ContactForm from './components/ContactForm';
 // import ItemDec from './pages/itemdec/itemdec';
 import ProductPage from './pages/item_dec';
 // import Checkout from './pages/Checkout';
-import Cart from './pages/Cart';
+
 import Home from './pages/Home';
 import { CartProvider } from './context/CartContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-
+import CartPage from './pages/CartPage';
 import './App.css';
 
 function App() {
@@ -37,7 +37,7 @@ function App() {
               <Route path="/menu" element={<Menu />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<ContactForm />} />
-              <Route path="/cart" element={<Cart />} />
+              <Route path="/cart" element={<CartPage />} />
               {/* <Route path="/item/:id" element={<ItemDec />} /> */}
               <Route path="/products/:category/:productId" element={<ProductPage />} />
             </Routes>

@@ -379,6 +379,10 @@
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
+.faq-item_contact p{
+  color: black;
+  text-align: justify;
+}
 
 .faq-item_contact summary {
   padding: 1.2rem;
