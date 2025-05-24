@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
 
-const OrderSummary = () => {
+const OrderSummary = ({ onProceedToCheckout }) => {
   const { cartItems, promoCode, applyPromoCode, calculateTotals } = useCart();
   const [inputCode, setInputCode] = useState(promoCode?.code || '');
   const { subtotal, addIns, discount, tax, total } = calculateTotals();
@@ -82,7 +82,10 @@ const OrderSummary = () => {
             </div>
           )}
         </div>
-        <button className="checkout_button_ordersummary">
+        <button 
+          className="checkout_button_ordersummary"
+          onClick={onProceedToCheckout}
+        >
           Proceed to Checkout
           <svg className="checkout_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />

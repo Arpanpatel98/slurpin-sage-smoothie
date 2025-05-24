@@ -19,8 +19,11 @@ function DeliveryForm() {
   const [address, setAddress] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [addressOptions, setAddressOptions] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [detailedAddress, setDetailedAddress] = useState('');
+  const [floor, setFloor] = useState('');
+  const [landmark, setLandmark] = useState('');
+
   const mapRef = useRef(null);
   const markerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -47,8 +50,10 @@ function DeliveryForm() {
       const { lat, lng } = e.latlng;
       setIsLoading(true);
       setMessage('');
-      setAddressOptions([]);
       setSelectedAddress(null);
+      setDetailedAddress('');
+      setFloor('');
+      setLandmark('');
 
       // Reverse geocode the clicked location
       try {
@@ -59,12 +64,11 @@ function DeliveryForm() {
         if (data.display_name) {
           setAddress(data.display_name);
           const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
-          cacheAddress(data.display_name, { lat, lon: lng, display_name: data.display_name });
           setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
           if (distance <= 3) {
-            setMessage(`Selected location is within 3 km (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
+            setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
           } else {
-            setMessage(`Sorry, selected location is outside the 3 km delivery radius (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
+            setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
           }
           // Update marker
           if (markerRef.current) {
@@ -83,13 +87,13 @@ function DeliveryForm() {
                 );
                 const data = await response.json();
                 setAddress(data.display_name || 'Unknown location');
-                cacheAddress(data.display_name, { lat, lon: lng, display_name: data.display_name });
                 setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
+                setDetailedAddress(data.display_name || '');
                 const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
                 if (distance <= 3) {
-                  setMessage(`Selected location is within 3 km (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
+                  setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
                 } else {
-                  setMessage(`Sorry, selected location is outside the 3 km delivery radius (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
+                  setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
                 }
               } catch (error) {
                 setMessage('Error fetching location. Please try again.');
@@ -114,111 +118,15 @@ function DeliveryForm() {
     };
   }, []);
 
-  // Load cached addresses from localStorage
-  const getCachedAddress = (query) => {
-    const cached = localStorage.getItem(`geocode_${query}`);
-    return cached ? JSON.parse(cached) : null;
-  };
-
-  // Cache geocoding result
-  const cacheAddress = (query, result) => {
-    localStorage.setItem(`geocode_${query}`, JSON.stringify(result));
-  };
-
-  // Handle address submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage('');
-    setAddressOptions([]);
-    setSelectedAddress(null);
-
-    // Append city/state/country for Indian addresses
-    const query = `${address}, Anand, Gujarat, India`;
-    const cached = getCachedAddress(query);
-
-    if (cached) {
-      setAddressOptions([cached]);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Geocode the address using Nominatim API
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-      );
-      const data = await response.json();
-
-      if (data.length === 0) {
-        setMessage('Address not found. Please try a more specific address (e.g., include street or area).');
-        setIsLoading(false);
-        return;
-      }
-
-      setAddressOptions(data);
-      if (data.length === 1) {
-        cacheAddress(query, data[0]);
-        handleAddressSelection(data[0]);
-      } else {
-        setMessage('Multiple addresses found. Please select one.');
-      }
-      setIsLoading(false);
-    } catch (error) {
-      setMessage('Error fetching location. Please try again.');
-      setIsLoading(false);
-    }
-  };
-
-  // Handle address selection from multiple options
-  const handleAddressSelection = (addr) => {
-    setSelectedAddress(addr);
-    const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, parseFloat(addr.lat), parseFloat(addr.lon));
-    if (distance <= 3) {
-      setMessage(`Address is within 3 km (Lat: ${parseFloat(addr.lat).toFixed(6)}, Lon: ${parseFloat(addr.lon).toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
-    } else {
-      setMessage(`Sorry, delivery is only available within 3 km of the shop (Lat: ${parseFloat(addr.lat).toFixed(6)}, Lon: ${parseFloat(addr.lon).toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
-    }
-    // Update map view and marker
-    mapInstanceRef.current.setView([parseFloat(addr.lat), parseFloat(addr.lon)], 13);
-    if (markerRef.current) {
-      markerRef.current.setLatLng([parseFloat(addr.lat), parseFloat(addr.lon)]).setPopupContent(addr.display_name);
-    } else {
-      markerRef.current = L.marker([parseFloat(addr.lat), parseFloat(addr.lon)], { draggable: true })
-        .addTo(mapInstanceRef.current)
-        .bindPopup(addr.display_name);
-      markerRef.current.on('dragend', async (e) => {
-        const { lat, lng } = e.target.getLatLng();
-        setIsLoading(true);
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          const data = await response.json();
-          setAddress(data.display_name || 'Unknown location');
-          cacheAddress(data.display_name, { lat, lon: lng, display_name: data.display_name });
-          setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
-          const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
-          if (distance <= 3) {
-            setMessage(`Selected location is within 3 km (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
-          } else {
-            setMessage(`Sorry, selected location is outside the 3 km delivery radius (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
-          }
-        } catch (error) {
-          setMessage('Error fetching location. Please try again.');
-        }
-        setIsLoading(false);
-      });
-    }
-  };
-
   // Handle getting current location with retry
   const handleGetLocation = () => {
     if (navigator.geolocation) {
       setIsLoading(true);
       setMessage('');
-      setAddressOptions([]);
       setSelectedAddress(null);
+      setDetailedAddress('');
+      setFloor('');
+      setLandmark('');
 
       const tryGeolocation = (attempts = 5, delay = 1000) => {
         navigator.geolocation.getCurrentPosition(
@@ -240,13 +148,13 @@ function DeliveryForm() {
                   );
                   const data = await response.json();
                   setAddress(data.display_name || 'Unknown location');
-                  cacheAddress(data.display_name, { lat, lon: lng, display_name: data.display_name });
                   setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
+                  setDetailedAddress(data.display_name || '');
                   const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
                   if (distance <= 3) {
-                    setMessage(`Selected location is within 3 km (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
+                    setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
                   } else {
-                    setMessage(`Sorry, selected location is outside the 3 km delivery radius (Lat: ${lat.toFixed(6)}, Lon: ${lng.toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
+                    setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
                   }
                 } catch (error) {
                   setMessage('Error fetching location. Please try again.');
@@ -260,13 +168,13 @@ function DeliveryForm() {
               );
               const data = await response.json();
               setAddress(data.display_name || 'Unknown location');
-              cacheAddress(data.display_name, { lat: latitude, lon: longitude, display_name: data.display_name });
               setSelectedAddress({ lat: latitude, lon: longitude, display_name: data.display_name });
+              setDetailedAddress(data.display_name || '');
               const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, latitude, longitude);
               if (distance <= 3) {
-                setMessage(`Your current location is within 3 km (Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}, Distance: ${distance.toFixed(2)} km). You can place your order!`);
+                setMessage(`Your current location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
               } else {
-                setMessage(`Sorry, your current location is outside the 3 km delivery radius (Lat: ${latitude.toFixed(6)}, Lon: ${longitude.toFixed(6)}, Distance: ${distance.toFixed(2)} km).`);
+                setMessage(`Sorry, your current location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
               }
             } catch (error) {
               setMessage('Error fetching location. Please try again.');
@@ -277,7 +185,7 @@ function DeliveryForm() {
             if (attempts > 1) {
               setTimeout(() => tryGeolocation(attempts - 1, delay * 2), delay);
             } else {
-              setMessage('Unable to get accurate location. Please adjust the marker on the map or enter your address manually.');
+              setMessage('Unable to get accurate location. Please adjust the marker on the map or use manual address entry.');
               mapInstanceRef.current.setView([SHOP_LOCATION.lat, SHOP_LOCATION.lon], 13);
               setIsLoading(false);
             }
@@ -293,48 +201,73 @@ function DeliveryForm() {
     }
   };
 
+  const handleConfirmAddress = () => {
+    // Handle saving/processing the confirmed address with details here
+    console.log('Confirmed Address:', selectedAddress);
+    console.log('Detailed Address:', detailedAddress);
+    console.log('Floor:', floor);
+    console.log('Landmark:', landmark);
+    // You would typically move to the next step (e.g., payment) here
+  };
+
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-lg">
-      <h1 className="text-2xl font-bold mb-4 text-center">Drink Delivery</h1>
-      <p className="text-gray-600 mb-4">Enter your delivery address (e.g., street or area in Anand) or select a location on the map to check if you're within 3 km of our shop.</p>
+      <h1 className="text-2xl font-bold mb-4 text-center">Enter address details</h1>
+      <p className="text-gray-600 mb-4">Select your location on the map or use your current location to check if you're within our delivery radius. Then, add detailed address information.</p>
       <div ref={mapRef} className="h-64 mb-4" style={{ height: '16rem' }}></div>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter delivery address (e.g., Vallabh Vidyanagar)"
-            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+      {!selectedAddress && (
+        <div className="space-y-4">
+           <button
+             type="button"
+             onClick={handleGetLocation}
+             className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-green-300"
+             disabled={isLoading}
+           >
+             {isLoading ? 'Checking...' : 'Use Current Location'}
+           </button>
         </div>
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Checking...' : 'Check Address'}
-        </button>
-        <button
-          type="button"
-          onClick={handleGetLocation}
-          className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-green-300"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Checking...' : 'Use Current Location'}
-        </button>
-      </form>
-      {addressOptions.length > 1 && (
-        <div className="mt-4">
-          <p className="text-gray-600">Select an address:</p>
-          <ul className="list-disc pl-5">
-            {addressOptions.map((addr, index) => (
-              <li key={index} className="cursor-pointer text-blue-500 hover:underline" onClick={() => handleAddressSelection(addr)}>
-                {addr.display_name}
-              </li>
-            ))}
-          </ul>
+      )}
+
+      {selectedAddress && (
+        <div className="mt-6 space-y-4">
+           <div className="bg-gray-100 p-3 rounded-md">
+              <p className="text-sm text-gray-700">Updated based on your exact map pin:</p>
+              <p className="font-medium text-gray-800">{selectedAddress.display_name}</p>
+           </div>
+          <div>
+            <input
+              type="text"
+              value={detailedAddress}
+              onChange={(e) => setDetailedAddress(e.target.value)}
+              placeholder="Complete Address *"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
+              required
+            />
+          </div>
+          <div>
+            <input
+              type="text"
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+              placeholder="Floor (Optional)"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
+            />
+          </div>
+          <div>
+            <input
+              type="text"
+              value={landmark}
+              onChange={(e) => setLandmark(e.target.value)}
+              placeholder="Landmark (Optional)"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
+            />
+          </div>
+          <button
+            onClick={handleConfirmAddress}
+            className="w-full bg-sage-500 text-white p-3 rounded-lg font-semibold hover:bg-sage-600 transition-colors"
+          >
+            Confirm address
+          </button>
         </div>
       )}
       {message && (
