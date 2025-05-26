@@ -22,18 +22,26 @@ const ProductCustomization = ({ product, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469';
+
   // Default product
   const defaultProduct = {
     id: 'morning-glory-smoothie',
     category: 'smoothies',
     name: 'MORNING GLORY SMOOTHIE',
-    image: 'greensmoothie.jpg',
-    price: 299,
-    rating: 5,
-    reviewCount: 124
+    image: DEFAULT_IMAGE_URL, // Use Firebase Storage default
+    price: 500, // Matches seed.js
+    rating: 4,
+    reviewCount: 50,
   };
 
-  const currentProduct = product || defaultProduct;
+  const currentProduct = {
+    ...defaultProduct,
+    ...product,
+    image: product?.image || DEFAULT_IMAGE_URL, // Ensure image is always a Firebase URL
+  };
 
   useEffect(() => {
     const fetchCustomizations = async () => {
@@ -43,19 +51,19 @@ const ProductCustomization = ({ product, onClose }) => {
         // Fetch bases
         const basesRef = collection(db, 'customization_options/config/bases');
         const basesSnapshot = await getDocs(basesRef);
-        const basesData = basesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const basesData = basesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setBases(basesData);
 
         // Fetch toppings
         const toppingsRef = collection(db, 'customization_options/config/toppings');
         const toppingsSnapshot = await getDocs(toppingsRef);
-        const toppingsData = toppingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const toppingsData = toppingsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setToppings(toppingsData);
 
         // Fetch boosters
         const boostersRef = collection(db, 'customization_options/config/boosters');
         const boostersSnapshot = await getDocs(boostersRef);
-        const boostersData = boostersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const boostersData = boostersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setBoosters(boostersData);
 
         // Set default base only if not in edit mode
@@ -70,20 +78,20 @@ const ProductCustomization = ({ product, onClose }) => {
           { id: 'regular-milk', name: 'Regular Milk', price: 0 },
           { id: 'coconut-milk', name: 'Coconut Milk', price: 0 },
           { id: 'almond-milk', name: 'Almond Milk', price: 0 },
-          { id: 'oat-milk', name: 'Oat Milk', price: 0 }
+          { id: 'oat-milk', name: 'Oat Milk', price: 0 },
         ]);
         setToppings([
           { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
           { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
           { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
           { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
-          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 }
+          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 },
         ]);
         setBoosters([
           { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
           { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
           { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
-          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 }
+          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 },
         ]);
       } finally {
         setLoading(false);
@@ -91,7 +99,7 @@ const ProductCustomization = ({ product, onClose }) => {
     };
 
     fetchCustomizations();
-  }, []);
+  }, [isEditMode]);
 
   const handleBaseChange = (newBase) => {
     setBase(newBase);
@@ -99,8 +107,8 @@ const ProductCustomization = ({ product, onClose }) => {
 
   const handleToppingToggle = (topping) => {
     const currentToppings = [...selectedToppings];
-    const index = currentToppings.findIndex(item => item.id === topping.id);
-    
+    const index = currentToppings.findIndex((item) => item.id === topping.id);
+
     if (index >= 0) {
       currentToppings.splice(index, 1);
       setSelectedToppings(currentToppings);
@@ -112,8 +120,8 @@ const ProductCustomization = ({ product, onClose }) => {
 
   const handleBoosterToggle = (booster) => {
     const currentBoosters = [...selectedBoosters];
-    const index = currentBoosters.findIndex(item => item.id === booster.id);
-    
+    const index = currentBoosters.findIndex((item) => item.id === booster.id);
+
     if (index >= 0) {
       currentBoosters.splice(index, 1);
       setSelectedBoosters(currentBoosters);
@@ -146,8 +154,8 @@ const ProductCustomization = ({ product, onClose }) => {
 
     // Calculate total price
     let totalPrice = currentProduct.price;
-    selectedToppings.forEach(topping => totalPrice += topping.price);
-    selectedBoosters.forEach(booster => totalPrice += booster.price);
+    selectedToppings.forEach((topping) => (totalPrice += topping.price));
+    selectedBoosters.forEach((booster) => (totalPrice += booster.price));
     totalPrice *= quantity;
 
     const customizedProduct = {
@@ -161,7 +169,8 @@ const ProductCustomization = ({ product, onClose }) => {
       boosters: selectedBoosters,
       specialInstructions,
       customized: true,
-      timestamp: serverTimestamp()
+      image: currentProduct.image, // Include image for cart
+      timestamp: serverTimestamp(),
     };
 
     try {
@@ -181,17 +190,21 @@ const ProductCustomization = ({ product, onClose }) => {
   };
 
   const isToppingSelected = (id) => {
-    return selectedToppings.some(topping => topping.id === id);
+    return selectedToppings.some((topping) => topping.id === id);
   };
 
   const isBoosterSelected = (id) => {
-    return selectedBoosters.some(booster => booster.id === id);
+    return selectedBoosters.some((booster) => booster.id === id);
   };
 
   const renderStars = (rating) => {
-    return Array(5).fill(0).map((_, index) => (
-      <span key={index} className={index < rating ? "star filled" : "star"}>★</span>
-    ));
+    return Array(5)
+      .fill(0)
+      .map((_, index) => (
+        <span key={index} className={index < rating ? 'star filled' : 'star'}>
+          ★
+        </span>
+      ));
   };
 
   const calculateTotalPrice = () => {
@@ -213,19 +226,20 @@ const ProductCustomization = ({ product, onClose }) => {
           <h2>Customize Your {currentProduct.name}</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-        
+
         <div className="product-info">
           <div className="product-image">
-            <img 
-              src={`/${currentProduct.image}`} 
+            <img
+              src={currentProduct.image}
               alt={currentProduct.name}
               onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "/greensmoothie.jpg";
+                e.target.onerror = null; // Prevent infinite loop
+                e.target.src = DEFAULT_IMAGE_URL; // Set default image
+                console.warn(`Failed to load image for ${currentProduct.name}: ${currentProduct.image}`);
               }}
             />
           </div>
-          
+
           <div className="product-details">
             <h3>{currentProduct.name}</h3>
             <p className="product-base">{base || 'Select a base'}</p>
@@ -235,12 +249,12 @@ const ProductCustomization = ({ product, onClose }) => {
             </div>
           </div>
         </div>
-        
+
         <div className="customization-section">
           <h4>Base</h4>
           <div className="base-options">
-            {bases.map(baseOption => (
-              <button 
+            {bases.map((baseOption) => (
+              <button
                 key={baseOption.id}
                 className={`base-option ${base === baseOption.name ? 'selected' : ''}`}
                 onClick={() => handleBaseChange(baseOption.name)}
@@ -250,19 +264,19 @@ const ProductCustomization = ({ product, onClose }) => {
             ))}
           </div>
         </div>
-        
+
         <div className="customization-section">
           <div className="section-header2">
             <h4>Superfood Toppings</h4>
             <span className="selection-limit">Select up to 3</span>
           </div>
           <div className="toppings-list">
-            {toppings.map(topping => (
+            {toppings.map((topping) => (
               <div className="topping-item" key={topping.id}>
                 <label className="checkbox-container">
-                  <input 
-                    type="checkbox" 
-                    checked={isToppingSelected(topping.id)} 
+                  <input
+                    type="checkbox"
+                    checked={isToppingSelected(topping.id)}
                     onChange={() => handleToppingToggle(topping)}
                     disabled={!isToppingSelected(topping.id) && selectedToppings.length >= 3}
                   />
@@ -277,19 +291,19 @@ const ProductCustomization = ({ product, onClose }) => {
             ))}
           </div>
         </div>
-        
+
         <div className="customization-section">
           <div className="section-header2">
             <h4>Nutritional Boosters</h4>
             <span className="selection-limit">Select up to 2</span>
           </div>
           <div className="boosters-list">
-            {boosters.map(booster => (
+            {boosters.map((booster) => (
               <div className="booster-item" key={booster.id}>
                 <label className="checkbox-container">
-                  <input 
-                    type="checkbox" 
-                    checked={isBoosterSelected(booster.id)} 
+                  <input
+                    type="checkbox"
+                    checked={isBoosterSelected(booster.id)}
                     onChange={() => handleBoosterToggle(booster)}
                     disabled={!isBoosterSelected(booster.id) && selectedBoosters.length >= 2}
                   />
@@ -304,74 +318,70 @@ const ProductCustomization = ({ product, onClose }) => {
             ))}
           </div>
         </div>
-        
+
         <div className="customization-section">
           <h4>Special Instructions</h4>
-          <textarea 
-            className="special-instructions" 
+          <textarea
+            className="special-instructions"
             placeholder="Any allergies or preferences?"
             value={specialInstructions}
             onChange={(e) => setSpecialInstructions(e.target.value)}
           ></textarea>
         </div>
-        
+
         <div className="quantity-section">
           <h4>Quantity</h4>
           <div className="product-quantity">
-            <div className="product-info-label">
-              {currentProduct.name}
-            </div>
+            <div className="product-info-label">{currentProduct.name}</div>
             <div className="quantity-controls">
-              <button 
-                className="quantity-btn decrease" 
+              <button
+                className="quantity-btn decrease"
                 onClick={handleDecreaseQuantity}
                 disabled={quantity <= 1}
               >
                 −
               </button>
               <span className="quantity-value">{quantity}</span>
-              <button 
-                className="quantity-btn increase" 
-                onClick={handleIncreaseQuantity}
-              >
+              <button className="quantity-btn increase" onClick={handleIncreaseQuantity}>
                 +
               </button>
             </div>
           </div>
         </div>
-        
+
         <div className="order-summary">
           <h4>Order Summary</h4>
           <div className="summary-item">
             <span className="summary-label">{currentProduct.name}</span>
             <span className="summary-price">₹{currentProduct.price}</span>
           </div>
-          
+
           {selectedBoosters.length > 0 && (
             <div className="summary-item">
               <span className="summary-label">Nutritional Boosters</span>
-              <span className="summary-price">₹{selectedBoosters.reduce((total, booster) => total + booster.price, 0)}</span>
+              <span className="summary-price">
+                ₹{selectedBoosters.reduce((total, booster) => total + booster.price, 0)}
+              </span>
             </div>
           )}
-          
+
           {selectedToppings.length > 0 && (
             <div className="summary-item">
               <span className="summary-label">Toppings</span>
-              <span className="summary-price">₹{selectedToppings.reduce((total, topping) => total + topping.price, 0)}</span>
+              <span className="summary-price">
+                ₹{selectedToppings.reduce((total, topping) => total + topping.price, 0)}
+              </span>
             </div>
           )}
-          
+
           <div className="summary-total">
             <span className="total-label">Total</span>
             <span className="total-price">₹{calculateTotalPrice()}</span>
           </div>
         </div>
-        
+
         <div className="cart-button-container">
-          <button 
-            className="add-to-cart-button" 
-            onClick={handleAddToCart}
-          >
+          <button className="add-to-cart-button" onClick={handleAddToCart}>
             {isEditMode ? 'Update Cart' : 'Add to Cart'} - ₹{calculateTotalPrice()}
           </button>
         </div>

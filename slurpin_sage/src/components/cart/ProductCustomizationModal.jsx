@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
+import './ProductCustomization.css';
 
 const ProductCustomizationModal = () => {
   const { addToCart, setShowCustomization, cartItems, showCustomization } = useCart();
@@ -23,19 +24,27 @@ const ProductCustomizationModal = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Fdefault.jpg?alt=media';
+
   // Default product for add mode
   const defaultProduct = {
     id: 'morning-glory-smoothie',
     productId: 'morning-glory-smoothie',
     category: 'smoothies',
     name: 'Morning Glory Smoothie',
-    image: 'greensmoothie.jpg',
-    price: 6.99,
-    rating: 5,
-    reviewCount: 124,
+    image: DEFAULT_IMAGE_URL, // Use Firebase Storage default
+    price: 500, // Matches seed.js (INR)
+    rating: 4,
+    reviewCount: 50,
   };
 
-  const currentProduct = product || defaultProduct;
+  const currentProduct = {
+    ...defaultProduct,
+    ...product,
+    image: product?.image || DEFAULT_IMAGE_URL, // Ensure image is always a Firebase URL
+  };
 
   // Initialize state with product data when in edit mode
   useEffect(() => {
@@ -124,6 +133,7 @@ const ProductCustomizationModal = () => {
           setBase(basesData[0].name);
         }
       } catch (err) {
+        console.error('Error fetching customizations:', err);
         setError('Failed to load customization options. Using defaults.');
         const fallbackBases = [
           { id: 'regular-milk', name: 'Regular Milk', price: 0 },
@@ -132,17 +142,17 @@ const ProductCustomizationModal = () => {
           { id: 'oat-milk', name: 'Oat Milk', price: 0 },
         ];
         const fallbackToppings = [
-          { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 0.5 },
-          { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 0.4 },
-          { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 0.6 },
-          { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 0.4 },
-          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 0.5 },
+          { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
+          { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
+          { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
+          { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
+          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 },
         ];
         const fallbackBoosters = [
-          { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 1.0 },
-          { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 1.2 },
-          { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 0.9 },
-          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 0.8 },
+          { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
+          { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
+          { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
+          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 },
         ];
         setBases(fallbackBases);
         setToppings(fallbackToppings);
@@ -258,7 +268,7 @@ const ProductCustomizationModal = () => {
       productId: currentProduct.productId || currentProduct.id,
       category: currentProduct.category || 'smoothies',
       name: currentProduct.name,
-      image: currentProduct.image || 'greensmoothie.jpg',
+      image: currentProduct.image, // Use Firebase Storage URL
       price: totalPrice,
       quantity,
       base,
@@ -281,7 +291,7 @@ const ProductCustomizationModal = () => {
         await setDoc(cartItemRef, {
           ...customizedProduct,
           id: product.id, // Preserve the original ID
-          timestamp: serverTimestamp()
+          timestamp: serverTimestamp(),
         }, { merge: true });
 
         // Update the cart context
@@ -310,7 +320,7 @@ const ProductCustomizationModal = () => {
           await setDoc(cartItemRef, {
             ...updatedProduct,
             id: existingItem.id,
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
           }, { merge: true });
           addToCart({ ...updatedProduct, id: existingItem.id });
         } else {
@@ -320,7 +330,7 @@ const ProductCustomizationModal = () => {
           await setDoc(cartItemRef, {
             ...customizedProduct,
             id: cartItemId,
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
           });
           addToCart({ ...customizedProduct, id: cartItemId });
         }
@@ -395,9 +405,13 @@ const ProductCustomizationModal = () => {
         <div className="product_info_productcustomizationmodal">
           <div className="product_image_productcustomizationmodal">
             <img
-              src={`/${currentProduct.image}`}
+              src={currentProduct.image}
               alt={currentProduct.name}
-              onError={(e) => (e.target.src = '/greensmoothie.jpg')}
+              onError={(e) => {
+                e.target.onerror = null; // Prevent infinite loop
+                e.target.src = DEFAULT_IMAGE_URL; // Set default image
+                console.warn(`Failed to load image for ${currentProduct.name}: ${currentProduct.image}`);
+              }}
             />
           </div>
           <div className="product_details_productcustomizationmodal">
@@ -529,7 +543,7 @@ const ProductCustomizationModal = () => {
             <div className="summary_item_productcustomizationmodal">
               <span className="summary_label_productcustomizationmodal">Toppings</span>
               <span className="summary_price_productcustomizationmodal">
-              ₹{selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0).toFixed(2)}
+                ₹{selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0).toFixed(2)}
               </span>
             </div>
           )}
@@ -537,7 +551,7 @@ const ProductCustomizationModal = () => {
             <div className="summary_item_productcustomizationmodal">
               <span className="summary_label_productcustomizationmodal">Nutritional Boosters</span>
               <span className="summary_price_productcustomizationmodal">
-              ₹{selectedBoosters.reduce((sum, b) => sum + (b.price || 0), 0).toFixed(2)}
+                ₹{selectedBoosters.reduce((sum, b) => sum + (b.price || 0), 0).toFixed(2)}
               </span>
             </div>
           )}

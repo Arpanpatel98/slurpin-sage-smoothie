@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import ProductCustomization from '../ProductCustomization';
-// import LoginSignupPage from './auth/LoginSignupPage';
+// import LoginSignupPage from './auth/LoginSignupPage'; // Uncomment when needed
 import './product-hero copy.css';
 
 const ProductHero = ({ category, productId }) => {
@@ -14,6 +14,10 @@ const ProductHero = ({ category, productId }) => {
   const [quantity, setQuantity] = useState(1);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469';
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -27,20 +31,14 @@ const ProductHero = ({ category, productId }) => {
           throw new Error(`Product not found at products/config/${category}/${productId}`);
         }
         const data = docSnap.data();
-        const imageMap = {
-          'morning-glory-smoothie': 'greensmoothie.jpg',
-          'chocolate-delight': 'chocolate.jpg',
-          'acai-bowl': 'acai.jpg',
-          'tropical-paradise': 'tropical.jpg'
-        };
         return {
           id: docSnap.id,
           category,
-          productName: data.productName || docSnap.id.replace(/-/g, ' ').toUpperCase(),
+          productName: data.name || docSnap.id.replace(/-/g, ' ').toUpperCase(), // Use 'name' from seed.js
           description: data.description || 'A refreshing blend of tropical flavors and nutrients.',
           price: data.price || 0,
-          image: imageMap[docSnap.id] || 'greensmoothie.jpg',
-          tags: data.tags || []
+          image: data.imageUrl || DEFAULT_IMAGE_URL, // Use imageUrl or default
+          tags: data.tags || [],
         };
       } catch (err) {
         console.error('Product fetch error:', {
@@ -48,7 +46,7 @@ const ProductHero = ({ category, productId }) => {
           code: err.code,
           stack: err.stack,
           category,
-          productId
+          productId,
         });
         throw err;
       }
@@ -70,14 +68,14 @@ const ProductHero = ({ category, productId }) => {
 
         return {
           averageRating: allReviews.length > 0 ? (totalRating / allReviews.length).toFixed(1) : 0,
-          totalReviews: allReviews.length
+          totalReviews: allReviews.length,
         };
       } catch (err) {
         console.error('Reviews fetch error:', {
           message: err.message,
           code: err.code,
           stack: err.stack,
-          productId
+          productId,
         });
         return { averageRating: 0, totalReviews: 0 };
       }
@@ -100,9 +98,9 @@ const ProductHero = ({ category, productId }) => {
           category: 'smoothies',
           productName: 'MORNING GLORY SMOOTHIE',
           description: 'A refreshing blend of tropical flavors and nutrients.',
-          price: 299,
-          image: 'greensmoothie.jpg',
-          tags: ['bestseller']
+          price: 500,
+          image: DEFAULT_IMAGE_URL, // Use default in fallback
+          tags: ['bestseller'],
         });
         setAverageRating(0);
         setTotalReviews(0);
@@ -172,23 +170,28 @@ const ProductHero = ({ category, productId }) => {
               )}
               <div className="smoothie-placeholder_Item_des">
                 <img
-                  src={`/${product.image}`}
+                  src={product.image}
                   alt={product.productName}
                   onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "/greensmoothie.jpg";
+                    e.target.onerror = null; // Prevent infinite loop
+                    e.target.src = DEFAULT_IMAGE_URL; // Set default image
+                    console.warn(`Failed to load image for ${product.productName}: ${product.image}`);
                   }}
                 />
               </div>
             </div>
           </div>
           <div className="hero-details_Item_des">
-            <h1 className="hero-title_Item_des">{product.productName.replace(/-/g, ' ').toUpperCase()}</h1>
+            <h1 className="hero-title_Item_des">
+              {product.productName.replace(/-/g, ' ').toUpperCase()}
+            </h1>
             <div className="rating_Item_des">
               <svg className="star-icon_Item_des" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3 .921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784 .57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81 .588-1.81h3.461a1 1 0 00 .951-.69l1.07-3.292z" />
               </svg>
-              <span className="rating-text_Item_des">{averageRating} ({totalReviews} reviews)</span>
+              <span className="rating-text_Item_des">
+                {averageRating} ({totalReviews} reviews)
+              </span>
             </div>
             <p className="hero-description_Item_des">{product.description}</p>
             <div className="price-section_Item_des">
@@ -196,7 +199,9 @@ const ProductHero = ({ category, productId }) => {
             </div>
             <div className="actions_Item_des">
               <div className="quantity_Item_des">
-                <button className="quantity-btn_Item_des" onClick={handleDecrement}>-</button>
+                <button className="quantity-btn_Item_des" onClick={handleDecrement}>
+                  -
+                </button>
                 <input
                   type="number"
                   className="quantity-input_Item_des"
@@ -205,7 +210,9 @@ const ProductHero = ({ category, productId }) => {
                   min="1"
                   max="10"
                 />
-                <button className="quantity-btn_Item_des" onClick={handleIncrement}>+</button>
+                <button className="quantity-btn_Item_des" onClick={handleIncrement}>
+                  +
+                </button>
               </div>
               <button className="add-to-cart_Item_des" onClick={handleAddToCart}>
                 <svg className="cart-icon_Item_des" viewBox="0 0 20 20" fill="currentColor">
@@ -227,14 +234,17 @@ const ProductHero = ({ category, productId }) => {
 
       {showLoginModal && (
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
-            <LoginSignupPage
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
+              ×
+            </button>
+            {/* <LoginSignupPage
               onSuccess={() => {
                 setShowLoginModal(false);
                 setShowCustomization(true);
               }}
-            />
+            /> */}
+            <p>Please uncomment LoginSignupPage import when available.</p>
           </div>
         </div>
       )}

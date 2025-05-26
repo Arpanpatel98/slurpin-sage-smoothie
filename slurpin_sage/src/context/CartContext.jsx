@@ -13,6 +13,10 @@ export const CartProvider = ({ children }) => {
   const [showCustomization, setShowCustomization] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Fdefault.jpg?alt=media';
+
   // Set up real-time listener for cart items
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -24,10 +28,18 @@ export const CartProvider = ({ children }) => {
       // Set up real-time listener for cart items
       const cartRef = collection(db, `cart_items/${user.uid}/items`);
       const unsubscribeCart = onSnapshot(cartRef, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const items = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          // Ensure image field exists
+          if (!data.image) {
+            console.warn(`Cart item ${doc.id} missing image field, using default`);
+          }
+          return {
+            id: doc.id,
+            ...data,
+            image: data.image || DEFAULT_IMAGE_URL, // Fallback to default
+          };
+        });
         setCartItems(items);
       }, (error) => {
         console.error('Error listening to cart updates:', error);
@@ -44,6 +56,12 @@ export const CartProvider = ({ children }) => {
 
     try {
       setIsLoading(true);
+      // Validate image field
+      if (!item.image) {
+        console.warn(`Adding item ${item.productId} without image, using default`);
+        item.image = DEFAULT_IMAGE_URL;
+      }
+
       // If the item has an id, it's an edit operation
       if (item.id) {
         const cartItemRef = doc(db, `cart_items/${auth.currentUser.uid}/items`, item.id);
@@ -69,7 +87,8 @@ export const CartProvider = ({ children }) => {
           ...item,
           quantity: newQuantity,
           price: newPrice,
-          customized: true
+          customized: true,
+          image: item.image, // Preserve image
         };
 
         const cartItemRef = doc(db, `cart_items/${auth.currentUser.uid}/items`, existingItem.id);
@@ -104,7 +123,8 @@ export const CartProvider = ({ children }) => {
         ...item,
         quantity: newQuantity,
         price: newPrice,
-        timestamp: serverTimestamp()
+        image: item.image || DEFAULT_IMAGE_URL, // Preserve image
+        timestamp: serverTimestamp(),
       }, { merge: true });
 
       setCartItems((prevItems) =>
@@ -182,7 +202,7 @@ export const CartProvider = ({ children }) => {
         calculateTotals,
         showCustomization,
         setShowCustomization,
-        isLoading
+        isLoading,
       }}
     >
       {children}

@@ -17,12 +17,16 @@ export default function Menu() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
+
   // Set categories
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const categoryList = ["All Smoothies", "smoothies", "milkshakes", "bowls"];
+        const categoryList = ["All Smoothies", "smoothies", "milkshakes","bowls"]; // Removed 'bowls'
         setCategories(categoryList);
         setActiveCategory("All Smoothies");
       } catch (error) {
@@ -42,51 +46,46 @@ export default function Menu() {
       setLoading(true);
       try {
         let itemsData = [];
-        const imageMap = {
-          'morning-glory-smoothie': 'greensmoothie.jpg',
-          'chocolate-delight': 'chocolate.jpg',
-          'acai-bowl': 'acai.jpg',
-          'tropical-paradise': 'tropical.jpg'
-        };
 
         // Fetch products
-        const categoriesToFetch = activeCategory === "All Smoothies"
-          ? ["smoothies", "milkshakes", "bowls"]
-          : [activeCategory];
+        const categoriesToFetch =
+          activeCategory === "All Smoothies" ? ["smoothies", "milkshakes"] : [activeCategory];
 
         for (const cat of categoriesToFetch) {
           const querySnapshot = await getDocs(collection(db, `products/config/${cat}`));
-          const categoryItems = await Promise.all(querySnapshot.docs.map(async (doc) => {
-            const productData = doc.data();
-            // Fetch reviews for this product
-            const reviewsRef = collection(db, 'product_reviews');
-            const q = query(reviewsRef, where('productId', '==', doc.id));
-            const reviewSnapshot = await getDocs(q);
-            let totalRating = 0;
-            let reviewCount = 0;
+          const categoryItems = await Promise.all(
+            querySnapshot.docs.map(async (doc) => {
+              const productData = doc.data();
+              // Fetch reviews for this product
+              const reviewsRef = collection(db, "product_reviews");
+              const q = query(reviewsRef, where("productId", "==", doc.id));
+              const reviewSnapshot = await getDocs(q);
+              let totalRating = 0;
+              let reviewCount = 0;
 
-            reviewSnapshot.forEach((reviewDoc) => {
-              const reviewData = reviewDoc.data();
-              totalRating += reviewData.rating || 0;
-              reviewCount += 1;
-            });
+              reviewSnapshot.forEach((reviewDoc) => {
+                const reviewData = reviewDoc.data();
+                totalRating += reviewData.rating || 0;
+                reviewCount += 1;
+              });
 
-            const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
+              const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
 
-            return {
-              id: doc.id,
-              category: cat,
-              name: productData.productName || doc.id.replace(/-/g, ' ').toUpperCase(),
-              ingredients: Array.isArray(productData.ingredients)
-                ? productData.ingredients.join(', ')
-                : 'Ingredients not available',
-              price: productData.price || 0,
-              image: imageMap[doc.id] || 'greensmoothie.jpg',
-              tags: productData.tags || [],
-              averageRating,
-              totalReviews: reviewCount
-            };
-          }));
+              return {
+                id: doc.id,
+                category: cat,
+                name: productData.name || doc.id.replace(/-/g, " ").toUpperCase(), // Use 'name' from seed.js
+                ingredients: Array.isArray(productData.ingredients)
+                  ? productData.ingredients.join(", ")
+                  : "Ingredients not available",
+                price: productData.price || 0,
+                image: productData.imageUrl || DEFAULT_IMAGE_URL, // Use imageUrl or default
+                tags: productData.tags || [],
+                averageRating,
+                totalReviews: reviewCount,
+              };
+            })
+          );
           itemsData = [...itemsData, ...categoryItems];
         }
 
@@ -96,31 +95,32 @@ export default function Menu() {
         console.error("Error fetching items or reviews:", {
           message: error.message,
           code: error.code,
-          stack: error.stack
+          stack: error.stack,
         });
         setItems([
           {
             id: "morning-glory-smoothie",
             category: "smoothies",
             name: "MORNING GLORY SMOOTHIE",
-            ingredients: "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
-            price: 299,
-            image: "greensmoothie.jpg",
+            ingredients:
+              "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
+            price: 500,
+            image: DEFAULT_IMAGE_URL, // Use default in fallback
             tags: ["bestseller"],
-            averageRating: 5.0,
-            totalReviews: 1
+            averageRating: 4.0,
+            totalReviews: 50,
           },
           {
-            id: "chocolate-delight",
+            id: "banana-date-shake",
             category: "milkshakes",
-            name: "CHOCOLATE DELIGHT",
-            ingredients: "Milk, Cocoa Powder, Sugar, Vanilla Ice Cream, Chocolate Syrup",
-            price: 349,
-            image: "chocolate.jpg",
-            tags: [],
-            averageRating: 5.0,
-            totalReviews: 1
-          }
+            name: "BANANA DATE SHAKE",
+            ingredients: "Banana, Dates, Milk",
+            price: 149,
+            image: DEFAULT_IMAGE_URL, // Update with actual URL if available
+            tags: ["new"],
+            averageRating: 4.5,
+            totalReviews: 30,
+          },
         ]);
       } finally {
         setLoading(false);
@@ -146,50 +146,55 @@ export default function Menu() {
 
   const getItemTag = (item) => {
     const nameLower = item.name.toLowerCase();
-    if (item.tags.includes('bestseller') || nameLower.includes('green goddess')) return 'BESTSELLER';
-    if (item.tags.includes('seasonal') || nameLower.includes('pumpkin') || nameLower.includes('citrus')) return 'SEASONAL';
-    if (nameLower.includes('protein')) return 'POST-WORKOUT';
+    if (item.tags.includes("bestseller") || nameLower.includes("green goddess"))
+      return "BESTSELLER";
+    if (
+      item.tags.includes("seasonal") ||
+      nameLower.includes("pumpkin") ||
+      nameLower.includes("citrus")
+    )
+      return "SEASONAL";
+    if (nameLower.includes("protein")) return "POST-WORKOUT";
     return null;
   };
 
   const getHealthTags = (item) => {
     const tags = [];
-    const ingredientsLower = (item.ingredients || '').toLowerCase();
+    const ingredientsLower = (item.ingredients || "").toLowerCase();
 
     if (
-      ingredientsLower.includes('spinach') ||
-      ingredientsLower.includes('kale') ||
-      !ingredientsLower.includes('milk') ||
-      ingredientsLower.includes('almond milk')
+      ingredientsLower.includes("spinach") ||
+      ingredientsLower.includes("kale") ||
+      (!ingredientsLower.includes("milk") || ingredientsLower.includes("almond milk"))
     ) {
-      tags.push('vegan');
+      tags.push("vegan");
     }
 
     if (
-      ingredientsLower.includes('spinach') ||
-      ingredientsLower.includes('kale') ||
-      ingredientsLower.includes('green')
+      ingredientsLower.includes("spinach") ||
+      ingredientsLower.includes("kale") ||
+      ingredientsLower.includes("green")
     ) {
-      tags.push('detox');
+      tags.push("detox");
     }
 
-    if (ingredientsLower.includes('protein')) {
-      tags.push('high protein');
-    }
-
-    if (
-      ingredientsLower.includes('immune') ||
-      ingredientsLower.includes('ginger') ||
-      ingredientsLower.includes('turmeric')
-    ) {
-      tags.push('immunity');
+    if (ingredientsLower.includes("protein")) {
+      tags.push("high protein");
     }
 
     if (
-      ingredientsLower.includes('anti-inflammatory') ||
-      ingredientsLower.includes('turmeric')
+      ingredientsLower.includes("immune") ||
+      ingredientsLower.includes("ginger") ||
+      ingredientsLower.includes("turmeric")
     ) {
-      tags.push('anti-inflammatory');
+      tags.push("immunity");
+    }
+
+    if (
+      ingredientsLower.includes("anti-inflammatory") ||
+      ingredientsLower.includes("turmeric")
+    ) {
+      tags.push("anti-inflammatory");
     }
 
     return tags;
@@ -205,17 +210,19 @@ export default function Menu() {
               key={star}
               className={
                 star <= Math.floor(rating)
-                  ? 'star filled'
+                  ? "star filled"
                   : star === Math.ceil(rating) && rating % 1 >= 0.5
-                  ? 'star half-filled'
-                  : 'star'
+                  ? "star half-filled"
+                  : "star"
               }
             >
               ★
             </span>
           ))}
         </div>
-        <span className="rating-text">{rating.toFixed(1)} ({totalReviews || 0})</span>
+        <span className="rating-text">
+          {rating.toFixed(1)} ({totalReviews || 0})
+        </span>
       </div>
     );
   };
@@ -267,11 +274,12 @@ export default function Menu() {
                     {itemTag && <div className="item-tag">{itemTag}</div>}
                     <div className="menu-card-image">
                       <img
-                        src={`/${item.image || "greensmoothie.jpg"}`}
+                        src={item.image}
                         alt={item.name}
                         onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "/greensmoothie.jpg";
+                          e.target.onerror = null; // Prevent infinite loop
+                          e.target.src = DEFAULT_IMAGE_URL; // Set default image
+                          console.warn(`Failed to load image for ${item.name}: ${item.image}`);
                         }}
                       />
                     </div>
@@ -287,7 +295,7 @@ export default function Menu() {
                           {healthTags.map((tag) => (
                             <span
                               key={tag}
-                              className={`health-tag ${tag.replace(/\s+/g, '-')}`}
+                              className={`health-tag ${tag.replace(/\s+/g, "-")}`}
                             >
                               {tag}
                             </span>
@@ -363,10 +371,7 @@ export default function Menu() {
       </div>
 
       {showCustomization && selectedItem && (
-        <ProductCustomization
-          product={selectedItem}
-          onClose={handleCloseCustomization}
-        />
+        <ProductCustomization product={selectedItem} onClose={handleCloseCustomization} />
       )}
     </div>
   );
