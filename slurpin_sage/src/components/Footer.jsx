@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFacebookF, faInstagram, faTwitter, faPinterest } from '@fortawesome/free-brands-svg-icons';
 import './Footer.css';
 
 function Footer() {
@@ -11,16 +13,16 @@ function Footer() {
           <p>Nourishing bodies and refreshing minds with nature's best ingredients since 2015.</p>
           <div className="social-links">
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
-              <i className="fa fa-facebook"></i>
+              <FontAwesomeIcon icon={faFacebookF} />
             </a>
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
-              <i className="fa fa-instagram"></i>
+              <FontAwesomeIcon icon={faInstagram} />
             </a>
             <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-              <i className="fa fa-twitter"></i>
+              <FontAwesomeIcon icon={faTwitter} />
             </a>
             <a href="https://pinterest.com" target="_blank" rel="noopener noreferrer">
-              <i className="fa fa-pinterest"></i>
+              <FontAwesomeIcon icon={faPinterest} />
             </a>
           </div>
         </div>
@@ -39,9 +41,15 @@ function Footer() {
           <div className="footer-section">
             <h4>Contact Us</h4>
             <ul className="contact-info">
-              <li><i className="fa fa-map-marker"></i> 123 Green Street, Healthy City, HC 12345</li>
-              <li><i className="fa fa-phone"></i> (555) 123-4567</li>
-              <li><i className="fa fa-envelope"></i> info@slurpinsage.com</li>
+              <li>
+                <FontAwesomeIcon icon="fa-solid fa-map-marker-alt" /> 123 Green Street, Healthy City, HC 12345
+              </li>
+              <li>
+                <FontAwesomeIcon icon="fa-solid fa-phone" /> (555) 123-4567
+              </li>
+              <li>
+                <FontAwesomeIcon icon="fa-solid fa-envelope" /> info@slurpinsage.com
+              </li>
             </ul>
           </div>
 
@@ -57,7 +65,7 @@ function Footer() {
 
       <div className="footer-bottom">
         <p>We're committed to sustainability, health, and community. Our cups and straws are biodegradable.</p>
-        <p>&copy; {new Date().getFullYear()} SlurpinSage. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} SlurpinSage. All rights reserved.</p>
       </div>
     </footer>
   );

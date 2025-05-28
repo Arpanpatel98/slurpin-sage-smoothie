@@ -102,6 +102,7 @@
 .insight-item_Item_des {
   display: flex;
   gap: 16px;
+  text-align: justify;
 }
 
 .insight-icon_Item_des {

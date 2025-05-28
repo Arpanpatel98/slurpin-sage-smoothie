@@ -3,7 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { auth } from './auth/firebaseLoginSignup';
 import CartButton from './CartButton';
 import LoginSignupPage from './auth/LoginSignupPage';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import './Navbar.css';
+import Logo from '../assets/Slurpin_sage_final.png'; // Adjust the path as needed
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -55,7 +58,9 @@ function Navbar() {
     <>
       <nav className="navbar">
         <div className="left-section">
-          <h1 className="logo">SLURPIN'SAGE</h1>
+          <Link to="/" onClick={handleLinkClick}>
+            <img src={Logo} alt="Slurpin's Sage Logo" className="logo" />
+          </Link>
         </div>
 
         <div className="nav-toggle" onClick={toggleMenu}>
@@ -72,11 +77,17 @@ function Navbar() {
           </li>
           {isLoggedIn ? (
             <li className="auth-link">
-              <button onClick={handleLogout} className="logout-btn">Logout</button>
+              <button onClick={handleLogout} className="auth-btn" title="Logout">
+                <FontAwesomeIcon icon={faRightFromBracket} />
+                <span className="auth-text">Logout</span>
+              </button>
             </li>
           ) : (
             <li className="auth-link">
-              <button onClick={handleLoginClick} className="login-btn">Login</button>
+              <button onClick={handleLoginClick} className="auth-btn" title="Login">
+                <FontAwesomeIcon icon={faUser} />
+                <span className="auth-text">Login</span>
+              </button>
             </li>
           )}
         </ul>

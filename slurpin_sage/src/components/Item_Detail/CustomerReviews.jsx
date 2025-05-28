@@ -1,23 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, query, orderBy, limit, where, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { collection, getDocs, addDoc, query, where, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import LoginSignupPage from '../auth/LoginSignupPage';
 import './customer-reviews copy.css';
 
 function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
+  const navigate = useNavigate();
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [newReview, setNewReview] = useState({
     title: '',
     rating: 5,
     text: '',
     author: '',
-    email: ''
+    email: '',
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isPhoneAuth, setIsPhoneAuth] = useState(false);
 
+  // Fetch user data and determine authentication type
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        let author = currentUser.displayName || '';
+        const isPhone = currentUser.phoneNumber && !currentUser.email;
+        setIsPhoneAuth(isPhone);
+
+        // If no displayName and phone auth, try fetching from Firestore
+        if (!author && isPhone) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+            if (userDoc.exists()) {
+              author = userDoc.data().name || currentUser.phoneNumber || '';
+            }
+          } catch (err) {
+            console.error('Error fetching user profile:', err);
+          }
+        }
+
+        setNewReview((prev) => ({
+          ...prev,
+          author: author,
+          email: isPhone ? '' : (currentUser.email || ''),
+        }));
+      } else {
+        setIsPhoneAuth(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch reviews when productId changes
   useEffect(() => {
     fetchReviews();
   }, [productId]);
@@ -26,45 +67,38 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
     try {
       setLoading(true);
       setError(null);
-      
-      // First, try to get all reviews for the product without ordering
+
       const reviewsRef = collection(db, 'product_reviews');
-      const q = query(
-        reviewsRef,
-        where('productId', '==', productId)
-      );
-      
+      const q = query(reviewsRef, where('productId', '==', productId));
       const querySnapshot = await getDocs(q);
       let allReviews = [];
       let totalRating = 0;
-      
+
       querySnapshot.forEach((doc) => {
         const reviewData = doc.data();
         const reviewWithId = {
           id: doc.id,
           ...reviewData,
-          date: formatDate(reviewData.timestamp?.toDate() || new Date())
+          date: formatDate(reviewData.timestamp?.toDate() || new Date()),
         };
         allReviews.push(reviewWithId);
         totalRating += reviewData.rating || 0;
       });
 
-      // Sort reviews by timestamp locally
+      // Sort reviews by timestamp (newest first)
       allReviews.sort((a, b) => {
         const dateA = a.timestamp?.toDate() || new Date();
         const dateB = b.timestamp?.toDate() || new Date();
         return dateB - dateA;
       });
 
-      // Limit to 10 reviews after sorting
+      // Limit to 10 reviews
       allReviews = allReviews.slice(0, 10);
 
       setReviews(allReviews);
       setTotalReviews(allReviews.length);
       setAverageRating(
-        allReviews.length > 0 
-          ? (totalRating / allReviews.length).toFixed(1) 
-          : 0
+        allReviews.length > 0 ? (totalRating / allReviews.length).toFixed(1) : 0
       );
     } catch (err) {
       console.error('Error fetching reviews:', err);
@@ -78,26 +112,37 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
     e.preventDefault();
     try {
       setError(null);
+      if (!newReview.author) {
+        setError('User name not found. Please update your profile.');
+        return;
+      }
+      if (!isPhoneAuth && !newReview.email) {
+        setError('User email not found. Please update your profile.');
+        return;
+      }
+
       const reviewData = {
         ...newReview,
         productId,
-        rating: Number(newReview.rating), // Ensure rating is a number
+        rating: Number(newReview.rating),
         timestamp: serverTimestamp(),
-        verified: true
+        verified: !!user,
+        userId: user?.uid || null,
+        email: isPhoneAuth ? null : newReview.email,
       };
 
       await addDoc(collection(db, 'product_reviews'), reviewData);
-      
-      // Reset form and refresh reviews
+
+      // Reset form
       setNewReview({
         title: '',
         rating: 5,
         text: '',
-        author: '',
-        email: ''
+        author: user ? (user.displayName || (isPhoneAuth ? '' : user.phoneNumber) || '') : '',
+        email: isPhoneAuth ? '' : (user?.email || ''),
       });
       setShowReviewForm(false);
-      await fetchReviews(); // Refresh the reviews list
+      await fetchReviews();
     } catch (err) {
       console.error('Error submitting review:', err);
       setError(`Failed to submit review: ${err.message}`);
@@ -109,7 +154,7 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
       const now = new Date();
       const diffTime = Math.abs(now - date);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 1) return 'yesterday';
       if (diffDays < 7) return `${diffDays} days ago`;
       if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
@@ -120,24 +165,37 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
     }
   };
 
-  if (loading) return (
-    <div className="loading_Item_des">
-      <div className="loading-spinner_Item_des"></div>
-      <p>Loading reviews...</p>
-    </div>
-  );
+  const handleWriteReview = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setShowReviewForm(true);
+  };
 
-  if (error) return (
-    <div className="error_Item_des">
-      <p>{error}</p>
-      <button 
-        className="retry-button_Item_des"
-        onClick={fetchReviews}
-      >
-        Try Again
-      </button>
-    </div>
-  );
+  const handleCloseModal = () => {
+    setShowLoginModal(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="loading_Item_des">
+        <div className="loading-spinner_Item_des"></div>
+        <p>Loading reviews...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error_Item_des">
+        <p>{error}</p>
+        <button className="retry-button_Item_des" onClick={fetchReviews}>
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <section className="customer-reviews_Item_des">
@@ -146,21 +204,35 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
         <div className="reviews-header_Item_des">
           <div className="rating-summary_Item_des">
             {[...Array(5)].map((_, i) => (
-              <svg 
-                key={i} 
-                className={`star-icon_Item_des ${i < Math.round(averageRating) ? 'filled' : ''}`} 
-                fill="currentColor" 
+              <svg
+                key={i}
+                className={`star-icon_Item_des ${i < Math.round(averageRating) ? 'filled' : ''}`}
+                fill="currentColor"
                 viewBox="0 0 20 20"
               >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
               </svg>
             ))}
-            <span className="rating-text_Item_des">{averageRating} out of 5 ({totalReviews} reviews)</span>
+            <span className="rating-text_Item_des">
+              {averageRating} out of 5 ({totalReviews} reviews)
+            </span>
           </div>
-          <button className="review-button_Item_des" onClick={() => setShowReviewForm(true)}>
+          <button
+            className="review-button_Item_des"
+            onClick={handleWriteReview}
+          >
             Write a Review
           </button>
         </div>
+
+        {showLoginModal && (
+          <div className="modal-overlay" onClick={handleCloseModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={handleCloseModal}>×</button>
+              <LoginSignupPage />
+            </div>
+          </div>
+        )}
 
         {reviews.length === 0 ? (
           <div className="no-reviews_Item_des">
@@ -174,8 +246,13 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
                   <div>
                     <div className="review-rating_Item_des">
                       {[...Array(5)].map((_, j) => (
-                        <svg key={j} className={`star-icon_Item_des ${j < review.rating ? 'filled' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        <svg
+                          key={j}
+                          className={`star-icon_Item_des ${j < review.rating ? 'filled' : ''}`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
                     </div>
@@ -201,8 +278,8 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
             <form onSubmit={handleSubmitReview} className="review-form_Item_des">
               <div className="form-header_Item_des">
                 <h3>Write a Review</h3>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="close-button_Item_des"
                   onClick={() => setShowReviewForm(false)}
                 >
@@ -241,26 +318,6 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
                 <textarea
                   value={newReview.text}
                   onChange={(e) => setNewReview({ ...newReview, text: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group_Item_des">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={newReview.author}
-                  onChange={(e) => setNewReview({ ...newReview, author: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group_Item_des">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={newReview.email}
-                  onChange={(e) => setNewReview({ ...newReview, email: e.target.value })}
                   required
                 />
               </div>

@@ -14,6 +14,12 @@
 .rating-summary_Item_des {
   display: flex;
   align-items: center;
+  gap: 5px;
+}
+
+.rating-summary_Item_des .star-icon_Item_des {
+  width: 24px;
+  height: 24px;
 }
 
 .rating-text_Item_des {
@@ -75,14 +81,26 @@
 
 .review-rating_Item_des {
   display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.review-rating_Item_des .star-icon_Item_des {
+  width: 18px;
+  height: 18px;
+}
+
+.star-icon_Item_des {
+  width: 20px;
+  height: 20px;
+  color: #ccc;
+  margin-right: 2px;
+  transition: color 0.3s ease;
 }
 
 .star-icon_Item_des.filled {
-  color: #facc15;
-}
-
-.star-icon_Item_des:not(.filled) {
-  color: #d1d5db;
+  color: #FFD700;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
 .review-title_Item_des {
@@ -90,6 +108,7 @@
   font-weight: 600;
   color: #111827;
   margin-top: 4px;
+  
 }
 
 .review-date_Item_des {
@@ -101,6 +120,7 @@
   font-size: 16px;
   color: #6b7280;
   margin-bottom: 16px;
+  text-align: justify;
 }
 
 .review-author_Item_des {
@@ -211,20 +231,27 @@
 
 .rating-input_Item_des {
   display: flex;
-  gap: 8px;
+  gap: 5px;
 }
 
 .star-button_Item_des {
   background: none;
   border: none;
   font-size: 24px;
-  color: #d1d5db;
+  color: #ccc;
   cursor: pointer;
-  transition: color 0.2s;
+  padding: 0;
+  transition: color 0.3s ease;
 }
 
 .star-button_Item_des.filled {
-  color: #facc15;
+  color: #FFD700;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.star-button_Item_des:hover {
+  color: #FFD700;
+  transform: scale(1.1);
 }
 
 .form-actions_Item_des {
@@ -261,4 +288,109 @@
 
 .cancel-button_Item_des:hover {
   background-color: #f3f4f6;
+}
+
+.login-prompt_Item_des {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.login-prompt_Item_des p {
+  font-size: 1.1rem;
+  color: #495057;
+  margin-bottom: 15px;
+}
+
+.login-prompt-buttons_Item_des {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.login-button_Item_des {
+  background-color: #2f7d1f;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.login-button_Item_des:hover {
+  background-color: #246618;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

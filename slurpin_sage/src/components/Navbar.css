@@ -3,8 +3,9 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   background-color: #2f7d1f;
-  padding: 20px 40px;
-  position: relative;
+  padding: 7px 40px;
+  position: sticky;
+  top: 0;
   z-index: 1000;
 }
 
@@ -18,6 +19,11 @@
   color: white;
   font-family: 'Arial Black', sans-serif;
   margin: 0;
+  height: 60px; /* Adjust as needed */
+  width: auto;
+  display: block;
+  background-color: transparent;
+  
 }
 
 .nav-links {
@@ -32,7 +38,7 @@
   font-family: 'Gayathri', sans-serif;
   font-weight: 400;
   justify-self: center;
-  grid-column: 2;
+  grid-column: auto;
 }
 
 .nav-links a {
@@ -120,8 +126,8 @@
 
   .nav-links {
     flex-direction: column;
-    position: fixed;
-    top: 70px;
+    position: absolute;
+    top: 100%;
     left: 0;
     width: 100%;
     background-color: #2f7d1f;
@@ -129,8 +135,11 @@
     display: none;
     text-align: center;
     gap: 0;
-    z-index: 1000;
+    z-index: 999;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+    margin-top: 10px;
   }
 
   .nav-links.active {
@@ -139,7 +148,7 @@
 
   .nav-links li {
     width: 100%;
-    padding: 15px 0;
+    padding: 13px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: center;
@@ -163,16 +172,39 @@
     padding: 15px 0;
   }
 
-  .modal-close {
-    top: 1rem;
-    right: 1rem;
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
+  .auth-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 1.2rem;
   }
 
-  .modal-content {
-    padding: 1rem;
+  .auth-text {
+    font-size: 1.2rem;
+  }
+
+  .auth-link {
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .auth-link:last-child {
+    border-bottom: none;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .navbar {
+    padding: 15px 30px;
+  }
+
+  .nav-links {
+    gap: 30px;
+  }
+
+  .nav-links a {
+    font-size: 18px;
   }
 }
 
@@ -186,7 +218,7 @@
   }
 
   .nav-links {
-    top: 60px;
+    top: 60px;  
   }
 
   .nav-toggle {
@@ -194,4 +226,52 @@
     height: 35px;
     font-size: 24px;
   }
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.icon-btn:hover {
+  color: #f57c00;
+}
+
+.auth-link .icon-btn {
+  margin-left: 10px;
+}
+
+.auth-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s ease;
+  font-family: 'Gayathri', sans-serif;
+}
+
+.auth-btn:hover {
+  color: #f57c00;
+}
+
+.auth-text {
+  font-size: 1.1rem;
+}
+
+.auth-link {
+  display: flex;
+  align-items: center;
 }
