@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 
 const CartItem = ({ item, index }) => {
-  const { updateQuantity, removeFromCart, setShowCustomization } = useCart();
+  const { updateQuantity, removeFromCart, setShowCustomization, outOfStockItems } = useCart();
+  const [error, setError] = useState('');
+  const [stockMessage, setStockMessage] = useState('');
+
+  useEffect(() => {
+    // Check if this item has a stock message
+    const outOfStockItem = outOfStockItems.find(outOfStockItem => outOfStockItem.id === item.id);
+    if (outOfStockItem) {
+      setStockMessage(outOfStockItem.message);
+    } else {
+      setStockMessage('');
+    }
+  }, [outOfStockItems, item.id]);
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
@@ -16,6 +28,17 @@ const CartItem = ({ item, index }) => {
       },
       mode: 'edit',
     });
+  };
+
+  const handleQuantityChange = async (newQuantity) => {
+    try {
+      setError('');
+      await updateQuantity(item.id, newQuantity);
+    } catch (err) {
+      setError(err.message);
+      // Clear error message after 3 seconds
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   return (
@@ -45,6 +68,11 @@ const CartItem = ({ item, index }) => {
               <span className="price_cartitem">₹{item.price.toFixed(2)}</span>
             </div>
           </div>
+          {stockMessage && (
+            <div className="stock_message_cartitem">
+              {stockMessage}
+            </div>
+          )}
           <div className="addons_cartitem">
             {item.toppings.map((topping) => (
               <span key={topping.id} className="addon_tag_cartitem">
@@ -58,7 +86,7 @@ const CartItem = ({ item, index }) => {
             ))}
           </div>
           {item.specialInstructions && (
-            <div className="special_instructions_cartitem" onClick={handleEdit}>
+            <div className="special_instructions_cartitem">
               <div className="special_instructions_header_cartitem">
                 <svg
                   className="special_instructions_icon_cartitem"
@@ -89,9 +117,7 @@ const CartItem = ({ item, index }) => {
                 </svg>
               </div>
               <div className="special_instructions_content_cartitem">
-                <span className="special_instructions_text_cartitem">
-                  {item.specialInstructions}
-                </span>
+                <p className="special_instructions_text_cartitem">{item.specialInstructions}</p>
               </div>
             </div>
           )}
@@ -99,7 +125,7 @@ const CartItem = ({ item, index }) => {
             <div className="quantity_container_cartitem">
               <button
                 className="quantity_button_cartitem"
-                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                onClick={() => handleQuantityChange(item.quantity - 1)}
               >
                 <svg
                   className="quantity_icon_cartitem"
@@ -119,13 +145,13 @@ const CartItem = ({ item, index }) => {
                 type="number"
                 className="quantity_input_cartitem quantity_input_global"
                 value={item.quantity}
-                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value))}
                 min="1"
-                max="10"
+                max={item.stock || 10}
               />
               <button
                 className="quantity_button_cartitem"
-                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                onClick={() => handleQuantityChange(item.quantity + 1)}
               >
                 <svg
                   className="quantity_icon_cartitem"
@@ -142,6 +168,7 @@ const CartItem = ({ item, index }) => {
                 </svg>
               </button>
             </div>
+            {error && <div className="error_message_cartitem">{error}</div>}
             <div className="buttons_cartitem">
               <button className="edit_button_cartitem" onClick={handleEdit}>
                 <svg

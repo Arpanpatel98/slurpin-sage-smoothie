@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 
 const OrderSummary = ({ onProceedToCheckout }) => {
-  const { cartItems, promoCode, applyPromoCode, calculateTotals } = useCart();
+  const { cartItems, promoCode, applyPromoCode, calculateTotals, checkStockStatus, outOfStockItems } = useCart();
   const [inputCode, setInputCode] = useState(promoCode?.code || '');
+  const [isCheckingStock, setIsCheckingStock] = useState(false);
+  const [hasOutOfStock, setHasOutOfStock] = useState(false);
   const { subtotal, addIns, discount, tax, total } = calculateTotals();
+
+  useEffect(() => {
+    const checkStock = async () => {
+      setIsCheckingStock(true);
+      const { hasOutOfStock } = await checkStockStatus();
+      setHasOutOfStock(hasOutOfStock);
+      setIsCheckingStock(false);
+    };
+    checkStock();
+  }, [cartItems]);
 
   const handleApplyPromo = () => {
     applyPromoCode(inputCode);
+  };
+
+  const handleProceedToCheckout = async () => {
+    const { hasOutOfStock } = await checkStockStatus();
+    if (!hasOutOfStock) {
+      onProceedToCheckout();
+    }
   };
 
   return (
@@ -38,27 +57,19 @@ const OrderSummary = ({ onProceedToCheckout }) => {
             </div>
           </div>
         </div>
-        <div className="rewards_container_ordersummary">
-          <div className="rewards_header_ordersummary">
-            <div className="rewards_title_container_ordersummary">
-              <svg className="rewards_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="rewards_title_ordersummary">Smoothie Points</span>
-            </div>
-            <span className="rewards_points_ordersummary">150 pts</span>
+
+        {hasOutOfStock && (
+          <div className="out-of-stock-message_ordersummary">
+            <p>Some items in your cart are out of stock:</p>
+            <ul>
+              {outOfStockItems.map((item) => (
+                <li key={item.id}>{item.name}</li>
+              ))}
+            </ul>
+            <p>Please remove these items to proceed with checkout.</p>
           </div>
-          <p className="rewards_text_ordersummary">You're 50 points away from a free smoothie!</p>
-          <div className="progress_container_ordersummary">
-            <div className="progress_bar_ordersummary">
-              <div className="progress_fill_ordersummary" style={{ width: '75%' }}></div>
-            </div>
-            <div className="progress_labels_ordersummary">
-              <span className="progress_current_ordersummary">150</span>
-              <span className="progress_goal_ordersummary">200</span>
-            </div>
-          </div>
-        </div>
+        )}
+
         <div className="promo_container_ordersummary">
           <label className="promo_label_ordersummary">Promo Code</label>
           <div className="promo_form_ordersummary">
@@ -83,13 +94,16 @@ const OrderSummary = ({ onProceedToCheckout }) => {
           )}
         </div>
         <button 
-          className="checkout_button_ordersummary"
-          onClick={onProceedToCheckout}
+          className={`checkout_button_ordersummary ${hasOutOfStock ? 'disabled' : ''}`}
+          onClick={handleProceedToCheckout}
+          disabled={hasOutOfStock || isCheckingStock}
         >
-          Proceed to Checkout
-          <svg className="checkout_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
+          {isCheckingStock ? 'Checking Stock...' : 'Proceed to Checkout'}
+          {!hasOutOfStock && !isCheckingStock && (
+            <svg className="checkout_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          )}
         </button>
         <div className="payment_methods_ordersummary">
           <span className="payment_label_ordersummary">We accept:</span>

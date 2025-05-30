@@ -14,6 +14,7 @@ const ProductHero = ({ category, productId }) => {
   const [quantity, setQuantity] = useState(1);
   const [showCustomization, setShowCustomization] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [stock, setStock] = useState(0);
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
@@ -34,11 +35,12 @@ const ProductHero = ({ category, productId }) => {
         return {
           id: docSnap.id,
           category,
-          productName: data.name || docSnap.id.replace(/-/g, ' ').toUpperCase(), // Use 'name' from seed.js
+          productName: data.productName || data.name || docSnap.id.replace(/-/g, ' ').toUpperCase(), // Try productName first, then name, then fallback to ID
           description: data.description || 'A refreshing blend of tropical flavors and nutrients.',
           price: data.price || 0,
           image: data.imageUrl || DEFAULT_IMAGE_URL, // Use imageUrl or default
           tags: data.tags || [],
+          stock: data.stock || 0, // Add stock field
         };
       } catch (err) {
         console.error('Product fetch error:', {
@@ -89,19 +91,22 @@ const ProductHero = ({ category, productId }) => {
         const reviewData = await fetchReviews();
 
         setProduct(productData);
+        setStock(productData.stock); // Set stock state
         setAverageRating(reviewData.averageRating);
         setTotalReviews(reviewData.totalReviews);
       } catch (err) {
         setError(`Failed to load product details: ${err.message}`);
         setProduct({
-          id: 'morning-glory-smoothie',
-          category: 'smoothies',
-          productName: 'MORNING GLORY SMOOTHIE',
+          id: productId,
+          category,
+          productName: productId.replace(/-/g, ' ').toUpperCase(),
           description: 'A refreshing blend of tropical flavors and nutrients.',
           price: 500,
-          image: DEFAULT_IMAGE_URL, // Use default in fallback
+          image: DEFAULT_IMAGE_URL,
           tags: ['bestseller'],
+          stock: 0,
         });
+        setStock(0);
         setAverageRating(0);
         setTotalReviews(0);
       } finally {
@@ -119,14 +124,14 @@ const ProductHero = ({ category, productId }) => {
   };
 
   const handleIncrement = () => {
-    if (quantity < 10) {
+    if (quantity < Math.min(10, stock)) {
       setQuantity(quantity + 1);
     }
   };
 
   const handleQuantityChange = (e) => {
     const newQuantity = parseInt(e.target.value, 10);
-    if (newQuantity >= 1 && newQuantity <= 10) {
+    if (newQuantity >= 1 && newQuantity <= Math.min(10, stock)) {
       setQuantity(newQuantity);
     }
   };
@@ -196,10 +201,19 @@ const ProductHero = ({ category, productId }) => {
             <p className="hero-description_Item_des">{product.description}</p>
             <div className="price-section_Item_des">
               <span className="price_Item_des">₹{product.price}</span>
+              {stock === 0 && (
+                <div className="out-of-stock-container_Item_des">
+                  <span className="out-of-stock-text_Item_des">Out of Stock</span>
+                </div>
+              )}
             </div>
             <div className="actions_Item_des">
               <div className="quantity_Item_des">
-                <button className="quantity-btn_Item_des" onClick={handleDecrement}>
+                <button 
+                  className="quantity-btn_Item_des" 
+                  onClick={handleDecrement}
+                  disabled={stock === 0}
+                >
                   -
                 </button>
                 <input
@@ -208,13 +222,22 @@ const ProductHero = ({ category, productId }) => {
                   value={quantity}
                   onChange={handleQuantityChange}
                   min="1"
-                  max="10"
+                  max={Math.min(10, stock)}
+                  disabled={stock === 0}
                 />
-                <button className="quantity-btn_Item_des" onClick={handleIncrement}>
+                <button 
+                  className="quantity-btn_Item_des" 
+                  onClick={handleIncrement}
+                  disabled={stock === 0}
+                >
                   +
                 </button>
               </div>
-              <button className="add-to-cart_Item_des" onClick={handleAddToCart}>
+              <button 
+                className={`add-to-cart_Item_des ${stock === 0 ? 'out-of-stock-btn' : ''}`}
+                onClick={handleAddToCart}
+                disabled={stock === 0}
+              >
                 <svg className="cart-icon_Item_des" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a .997 .997 0 00 .01 .042l1.358 5.43-.893 .892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00 .894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
                 </svg>
@@ -227,7 +250,12 @@ const ProductHero = ({ category, productId }) => {
 
       {showCustomization && (
         <ProductCustomization
-          product={{ ...product, quantity }}
+          product={{
+            ...product,
+            name: product.productName,
+            productId: product.id,
+            category: product.category
+          }}
           onClose={handleCloseCustomization}
         />
       )}

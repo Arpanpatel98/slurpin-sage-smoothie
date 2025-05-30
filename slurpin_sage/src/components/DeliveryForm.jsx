@@ -63,16 +63,16 @@ function DeliveryForm({ onAddressAdded, existingAddress, onCancel }) {
 
     try {
       mapInstanceRef.current = L.map(mapRef.current).setView([initialLat, initialLon], initialZoom);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(mapInstanceRef.current);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(mapInstanceRef.current);
 
-      // Add shop marker
-      L.marker([SHOP_LOCATION.lat, SHOP_LOCATION.lon], {
-        icon: L.divIcon({ className: 'bg-red-500 w-4 h-4 rounded-full', html: '' }),
-      })
-        .addTo(mapInstanceRef.current)
-        .bindPopup('Shop Location');
+    // Add shop marker
+    L.marker([SHOP_LOCATION.lat, SHOP_LOCATION.lon], {
+      icon: L.divIcon({ className: 'bg-red-500 w-4 h-4 rounded-full', html: '' }),
+    })
+      .addTo(mapInstanceRef.current)
+      .bindPopup('Shop Location');
 
       // If editing existing address and coordinates are valid, add marker at that location
       if (existingAddress && typeof existingAddress.lat === 'number' && typeof existingAddress.lon === 'number') {
@@ -81,70 +81,70 @@ function DeliveryForm({ onAddressAdded, existingAddress, onCancel }) {
           .bindPopup(existingAddress.detailedAddress);
       }
 
-      // Handle map click to set marker
-      mapInstanceRef.current.on('click', async (e) => {
-        const { lat, lng } = e.latlng;
-        setIsLoading(true);
-        setMessage('');
-        setSelectedAddress(null);
-        setDetailedAddress('');
-        setFloor('');
-        setLandmark('');
+    // Handle map click to set marker
+    mapInstanceRef.current.on('click', async (e) => {
+      const { lat, lng } = e.latlng;
+      setIsLoading(true);
+      setMessage('');
+      setSelectedAddress(null);
+      setDetailedAddress('');
+      setFloor('');
+      setLandmark('');
 
-        // Reverse geocode the clicked location
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          const data = await response.json();
-          if (data.display_name) {
-            setAddress(data.display_name);
-            const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
-            setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
-            if (distance <= 3) {
-              setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
-            } else {
-              setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
-            }
-            // Update marker
-            if (markerRef.current) {
-              markerRef.current.setLatLng([lat, lng]).setPopupContent(data.display_name);
-            } else {
-              markerRef.current = L.marker([lat, lng], { draggable: true })
-                .addTo(mapInstanceRef.current)
-                .bindPopup(data.display_name);
-              // Handle marker drag
-              markerRef.current.on('dragend', async (e) => {
-                const { lat, lng } = e.target.getLatLng();
-                setIsLoading(true);
-                try {
-                  const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-                  );
-                  const data = await response.json();
-                  setAddress(data.display_name || 'Unknown location');
-                  setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
-                  setDetailedAddress(data.display_name || '');
-                  const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
-                  if (distance <= 3) {
-                    setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
-                  } else {
-                    setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
-                  }
-                } catch (error) {
-                  setMessage('Error fetching location. Please try again.');
-                }
-                setIsLoading(false);
-              });
-            }
+      // Reverse geocode the clicked location
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        );
+        const data = await response.json();
+        if (data.display_name) {
+          setAddress(data.display_name);
+          const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
+          setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
+          if (distance <= 3) {
+            setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
           } else {
-            setMessage('Unable to find address for this location.');
+            setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
           }
-        } catch (error) {
-          setMessage('Error fetching location. Please try again.');
+          // Update marker
+          if (markerRef.current) {
+            markerRef.current.setLatLng([lat, lng]).setPopupContent(data.display_name);
+          } else {
+            markerRef.current = L.marker([lat, lng], { draggable: true })
+              .addTo(mapInstanceRef.current)
+              .bindPopup(data.display_name);
+            // Handle marker drag
+            markerRef.current.on('dragend', async (e) => {
+              const { lat, lng } = e.target.getLatLng();
+              setIsLoading(true);
+              try {
+                const response = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+                );
+                const data = await response.json();
+                setAddress(data.display_name || 'Unknown location');
+                setSelectedAddress({ lat, lon: lng, display_name: data.display_name });
+                setDetailedAddress(data.display_name || '');
+                const distance = getDistance(SHOP_LOCATION.lat, SHOP_LOCATION.lon, lat, lng);
+                if (distance <= 3) {
+                  setMessage(`Selected location is within 3 km (Distance: ${distance.toFixed(2)} km). You can place your order!`);
+                } else {
+                  setMessage(`Sorry, selected location is outside the 3 km delivery radius (Distance: ${distance.toFixed(2)} km).`);
+                }
+              } catch (error) {
+                setMessage('Error fetching location. Please try again.');
+              }
+              setIsLoading(false);
+            });
+          }
+        } else {
+          setMessage('Unable to find address for this location.');
         }
-        setIsLoading(false);
-      });
+      } catch (error) {
+        setMessage('Error fetching location. Please try again.');
+      }
+      setIsLoading(false);
+    });
     } catch (error) {
       console.error('Error initializing map:', error);
       setMessage('Error initializing map. Please refresh the page.');
@@ -315,23 +315,23 @@ function DeliveryForm({ onAddressAdded, existingAddress, onCancel }) {
       
       {!selectedAddress && !existingAddress && (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={handleGetLocation}
-            className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-green-300"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Checking...' : 'Use Current Location'}
-          </button>
+           <button
+             type="button"
+             onClick={handleGetLocation}
+             className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-green-300"
+             disabled={isLoading}
+           >
+             {isLoading ? 'Checking...' : 'Use Current Location'}
+           </button>
         </div>
       )}
 
       {(selectedAddress || existingAddress) && (
         <div className="mt-6 space-y-4">
-          <div className="bg-gray-100 p-3 rounded-md">
-            <p className="text-sm text-gray-700">Updated based on your exact map pin:</p>
+           <div className="bg-gray-100 p-3 rounded-md">
+              <p className="text-sm text-gray-700">Updated based on your exact map pin:</p>
             <p className="font-medium text-gray-800">{selectedAddress?.display_name || existingAddress?.detailedAddress}</p>
-          </div>
+           </div>
           
           <div>
             <input

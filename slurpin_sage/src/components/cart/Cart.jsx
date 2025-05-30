@@ -148,15 +148,15 @@ const Cart = () => {
       return (
         <div className="slide_up_global" style={{ animationDelay: '0.4s' }}>
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <button 
-              onClick={handleBackToCart}
+          <button 
+            onClick={handleBackToCart}
               className="mb-6 flex items-center text-sage-600 hover:text-sage-800 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Cart
-            </button>
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Cart
+          </button>
 
             {loading ? (
               <div className="text-center py-8">

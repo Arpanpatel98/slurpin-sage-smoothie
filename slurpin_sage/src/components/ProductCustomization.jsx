@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import './ProductCustomization.css';
 
@@ -20,7 +20,8 @@ const ProductCustomization = ({ product, onClose }) => {
   const [toppings, setToppings] = useState([]);
   const [boosters, setBoosters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const [currentStock, setCurrentStock] = useState(0);
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
@@ -101,6 +102,20 @@ const ProductCustomization = ({ product, onClose }) => {
     fetchCustomizations();
   }, [isEditMode]);
 
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const productRef = doc(db, `products/config/${product.category}/${product.id}`);
+        const productDoc = await getDoc(productRef);
+        const productData = productDoc.data();
+        setCurrentStock(productData?.stock || 0);
+      } catch (err) {
+        console.error('Error fetching stock:', err);
+      }
+    };
+    fetchStock();
+  }, [product]);
+
   const handleBaseChange = (newBase) => {
     setBase(newBase);
   };
@@ -131,14 +146,13 @@ const ProductCustomization = ({ product, onClose }) => {
     }
   };
 
-  const handleDecreaseQuantity = () => {
-    if (quantity > 1) {
-      setQuantity(quantity - 1);
+  const handleQuantityChange = (newQuantity) => {
+    if (newQuantity < 1 || newQuantity > currentStock) {
+      setError(`Only ${currentStock} items available in stock`);
+      return;
     }
-  };
-
-  const handleIncreaseQuantity = () => {
-    setQuantity(quantity + 1);
+    setError('');
+    setQuantity(newQuantity);
   };
 
   const handleAddToCart = async () => {
@@ -329,24 +343,33 @@ const ProductCustomization = ({ product, onClose }) => {
           ></textarea>
         </div>
 
-        <div className="quantity-section">
-          <h4>Quantity</h4>
-          <div className="product-quantity">
-            <div className="product-info-label">{currentProduct.name}</div>
-            <div className="quantity-controls">
+        <div className="quantity_section_productcustomizationmodal">
+          <div className="product_quantity_productcustomizationmodal">
+            <span className="product_info_label_productcustomizationmodal">Quantity</span>
+            <div className="quantity_controls_productcustomizationmodal">
               <button
-                className="quantity-btn decrease"
-                onClick={handleDecreaseQuantity}
+                className="quantity_button_productcustomizationmodal"
+                onClick={() => handleQuantityChange(quantity - 1)}
                 disabled={quantity <= 1}
               >
-                −
+                -
               </button>
-              <span className="quantity-value">{quantity}</span>
-              <button className="quantity-btn increase" onClick={handleIncreaseQuantity}>
+              <span className="quantity_value_productcustomizationmodal">{quantity}</span>
+              <button
+                className="quantity_button_productcustomizationmodal"
+                onClick={() => handleQuantityChange(quantity + 1)}
+                disabled={quantity >= currentStock}
+              >
                 +
               </button>
             </div>
           </div>
+          {error && <div className="error_productcustomizationmodal">{error}</div>}
+          {currentStock > 0 && currentStock <= 5 && (
+            <div className="stock_warning_productcustomizationmodal">
+              Only {currentStock} items left in stock!
+            </div>
+          )}
         </div>
 
         <div className="order-summary">

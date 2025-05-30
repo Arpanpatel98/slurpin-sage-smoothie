@@ -48,8 +48,9 @@ const PopularItems = () => {
                 ? data.ingredients.join(", ")
                 : "Ingredients not available",
               price: data.price || 0,
-              image: data.imageUrl || DEFAULT_IMAGE_URL, // Use imageUrl or default
+              image: data.imageUrl || DEFAULT_IMAGE_URL,
               tag: tagMap[doc.id] || null,
+              stock: data.stock || 0,
             });
           });
         }
@@ -71,8 +72,9 @@ const PopularItems = () => {
             ingredients:
               "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
             price: 500,
-            image: DEFAULT_IMAGE_URL, // Use default in fallback
+            image: DEFAULT_IMAGE_URL,
             tag: "BESTSELLER",
+            stock: 0,
           },
           {
             id: "banana-date-shake",
@@ -80,8 +82,9 @@ const PopularItems = () => {
             name: "BANANA DATE SHAKE",
             ingredients: "Banana, Dates, Milk",
             price: 149,
-            image: DEFAULT_IMAGE_URL, // Update with actual URL if available
+            image: DEFAULT_IMAGE_URL,
             tag: "NEW",
+            stock: 0,
           },
           {
             id: "chocolate-milkshake",
@@ -90,6 +93,7 @@ const PopularItems = () => {
             ingredients: "Cacao Powder, Milk, Dates, Jaggery Powder, Vanilla Extract",
             price: 159,
             image: DEFAULT_IMAGE_URL,
+            stock: 0,
           },
           {
             id: "virgin-pina-colada",
@@ -98,6 +102,7 @@ const PopularItems = () => {
             ingredients: "Fresh Pineapple, Freshly Made Coconut Milk, Dates, Ice",
             price: 219,
             image: DEFAULT_IMAGE_URL,
+            stock: 0,
           },
         ];
         setPopularItems(fallbackItems);
@@ -133,6 +138,10 @@ const PopularItems = () => {
 
     if (!auth.currentUser) {
       setShowLoginModal(true);
+      return;
+    }
+
+    if (item.stock === 0) {
       return;
     }
 
@@ -183,13 +192,18 @@ const PopularItems = () => {
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             {item.tag && <span className={`item-tag ${item.tag.toLowerCase()}`}>{item.tag}</span>}
+            {item.stock === 0 && (
+              <div className="out-of-stock-container_popular">
+                <span className="out-of-stock-text_popular">Out of Stock</span>
+              </div>
+            )}
             <div className="item-image">
               <img
                 src={item.image}
                 alt={item.name}
                 onError={(e) => {
-                  e.target.onerror = null; // Prevent infinite loop
-                  e.target.src = DEFAULT_IMAGE_URL; // Set default image
+                  e.target.onerror = null;
+                  e.target.src = DEFAULT_IMAGE_URL;
                   console.warn(`Failed to load image for ${item.name}: ${item.image}`);
                 }}
               />
@@ -199,8 +213,9 @@ const PopularItems = () => {
             <div className="item-footer">
               <span className="item-price">₹{item.price}</span>
               <button
-                className="add-to-cart-btn_popularItem"
+                className={`add-to-cart-btn_popularItem ${item.stock === 0 ? 'out-of-stock-btn_popular' : ''}`}
                 onClick={(e) => handleAddToCart(e, item)}
+                disabled={item.stock === 0}
               >
                 Add to Cart
               </button>

@@ -83,6 +83,7 @@ export default function Menu() {
                 tags: productData.tags || [],
                 averageRating,
                 totalReviews: reviewCount,
+                stock: productData.stock || 0, // Add stock field
               };
             })
           );
@@ -109,6 +110,7 @@ export default function Menu() {
             tags: ["bestseller"],
             averageRating: 4.0,
             totalReviews: 50,
+            stock: 0, // Add stock field
           },
           {
             id: "banana-date-shake",
@@ -120,6 +122,7 @@ export default function Menu() {
             tags: ["new"],
             averageRating: 4.5,
             totalReviews: 30,
+            stock: 0, // Add stock field
           },
         ]);
       } finally {
@@ -131,6 +134,9 @@ export default function Menu() {
 
   const handleAddToCart = (e, item) => {
     e.stopPropagation();
+    if (item.stock === 0) {
+      return;
+    }
     setSelectedItem(item);
     setShowCustomization(true);
   };
@@ -272,6 +278,11 @@ export default function Menu() {
                     onClick={() => navigate(`/products/${item.category}/${item.id}`)}
                   >
                     {itemTag && <div className="item-tag">{itemTag}</div>}
+                    {item.stock === 0 && (
+                      <div className="out-of-stock-container_menu">
+                        <span className="out-of-stock-text_menu">Out of Stock</span>
+                      </div>
+                    )}
                     <div className="menu-card-image">
                       <img
                         src={item.image}
@@ -307,8 +318,9 @@ export default function Menu() {
 
                       <div className="button-wrapper">
                         <button
-                          className="add-to-cart-btn"
+                          className={`add-to-cart-btn ${item.stock === 0 ? 'out-of-stock-btn_menu' : ''}`}
                           onClick={(e) => handleAddToCart(e, item)}
+                          disabled={item.stock === 0}
                         >
                           Add to Cart
                         </button>
