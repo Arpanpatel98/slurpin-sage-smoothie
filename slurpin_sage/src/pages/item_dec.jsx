@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ProductHero from '../components/Item_Detail/ProductHero';
 import Ingredients from '../components/Item_Detail/Ingredients';
@@ -12,6 +12,14 @@ import '../components/Item_Detail/item_de copy.css';
 const ProductPage = () => {
   const { category, productId } = useParams();
   console.log('ProductPage params:', { category, productId }); // Debug log
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, [category, productId]); // Re-run when category or productId changes
 
   if (!category || !productId) {
     console.error('Missing URL parameters in ProductPage:', { category, productId });

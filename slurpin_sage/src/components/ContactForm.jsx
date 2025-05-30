@@ -23,6 +23,12 @@ const ContactForm = () => {
   const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       if (user) {

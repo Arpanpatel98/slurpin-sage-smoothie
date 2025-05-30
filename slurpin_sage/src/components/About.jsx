@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './About.css';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -8,6 +9,8 @@ import valuesBg from '../assets/values-bg.jpg';
 import parallaxBg from '../assets/parallax-bg.jpg';
 
 function About() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     AOS.init({
       duration: 1000,
@@ -17,6 +20,10 @@ function About() {
       anchorPlacement: 'top-bottom'
     });
   }, []);
+
+  const handleVisitUsClick = () => {
+    navigate('/contact');
+  };
 
   // Use inline styles with imported images as fallback
   const heroStyle = {
@@ -191,7 +198,7 @@ function About() {
         <div className="parallax-content" data-aos="fade-up">
           <h2>Join Our Smoothie Revolution</h2>
           <p>Experience the perfect blend of taste, nutrition and sustainability</p>
-          <button className="primary-btn">Visit Us Today</button>
+          <button className="primary-btn" onClick={handleVisitUsClick}>Visit Us Today</button>
         </div>
       </div>
     </div>

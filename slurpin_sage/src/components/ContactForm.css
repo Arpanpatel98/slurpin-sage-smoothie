@@ -41,7 +41,7 @@
 
 .contact-header_contact p {
   font-size: 1.1rem;
-  max-width: 700px;
+  max-width: 800px;
   margin: 0 auto;
   line-height: 1.6;
 }
@@ -99,7 +99,7 @@
 
 .contact-icon_contact i {
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: var(--white);
 }
 
 .contact-card_contact h3 {
@@ -159,7 +159,7 @@
   bottom: 0;
   left: 0;
   height: 3px;
-  width: 50px;
+  width: 100%;
   background-color: var(--primary-color);
 }
 
@@ -321,7 +321,7 @@
 
 .store-hours_contact li, .store-contact_contact p {
   margin-bottom: 0.4rem;
-  color: var(--text-light);
+  color: var(--text-dark);
   font-size: 0.95rem;
 }
 
