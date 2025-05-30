@@ -13,7 +13,7 @@ const CartPage = () => {
         <Cart />
       </main>
 
-      <MobileNav />
+      {/* <MobileNav /> */}
       <BackToTop />
     </>
   );
