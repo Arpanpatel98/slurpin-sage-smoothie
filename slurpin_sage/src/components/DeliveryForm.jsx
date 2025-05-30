@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 // Shop's coordinates (near Anand, Gujarat, India)
 const SHOP_LOCATION = { lat: 22.6029671, lon: 72.819893 };
@@ -201,13 +203,47 @@ function DeliveryForm() {
     }
   };
 
-  const handleConfirmAddress = () => {
-    // Handle saving/processing the confirmed address with details here
-    console.log('Confirmed Address:', selectedAddress);
-    console.log('Detailed Address:', detailedAddress);
-    console.log('Floor:', floor);
-    console.log('Landmark:', landmark);
-    // You would typically move to the next step (e.g., payment) here
+  const handleConfirmAddress = async () => {
+    try {
+      // Validate complete address
+      if (!detailedAddress.trim()) {
+        setMessage('Please enter your complete address');
+        return;
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        setMessage('Please login to save your address');
+        return;
+      }
+
+      const addressData = {
+        userId: user.uid,
+        coordinates: {
+          lat: selectedAddress.lat,
+          lon: selectedAddress.lon
+        },
+        displayName: selectedAddress.display_name,
+        detailedAddress: detailedAddress.trim(),
+        floor: floor.trim(),
+        landmark: landmark.trim(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+
+      // Create a new document reference with auto-generated ID
+      const deliveryAddressesRef = collection(db, 'delivery_addresses');
+      const newAddressRef = doc(deliveryAddressesRef);
+      
+      // Store address in delivery_addresses collection with random ID
+      await setDoc(newAddressRef, addressData);
+      
+      setMessage('Address saved successfully!');
+      // You can add additional logic here, like moving to the next step
+    } catch (error) {
+      console.error('Error saving address:', error);
+      setMessage('Error saving address. Please try again.');
+    }
   };
 
   return (
@@ -243,6 +279,7 @@ function DeliveryForm() {
               className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
               required
             />
+           
           </div>
           <div>
             <input
