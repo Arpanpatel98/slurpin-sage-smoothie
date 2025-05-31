@@ -6,7 +6,7 @@ import RecommendedProduct from './RecommendedProduct';
 import OrderSummary from './OrderSummary';
 import ProductCustomization from './ProductCustomizationModal';
 import DeliveryForm from '../DeliveryForm';
-import { collection, query, where, getDocs, deleteDoc, doc, addDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 
 const recommendedProducts = [
@@ -220,6 +220,24 @@ const Cart = () => {
 
               if (!orderData.delivery.address) {
                 throw new Error('Delivery address is required');
+              }
+
+              // Reduce stock for each item in the order
+              for (const item of cartItems) {
+                const productRef = doc(db, `products/config/${item.category}/${item.productId}`);
+                const productDoc = await getDoc(productRef);
+                
+                if (productDoc.exists()) {
+                  const productData = productDoc.data();
+                  const currentStock = productData.stock || 0;
+                  const newStock = Math.max(0, currentStock - item.quantity);
+                  
+                  // Update stock in Firebase
+                  await updateDoc(productRef, {
+                    stock: newStock,
+                    lastUpdated: new Date().toISOString()
+                  });
+                }
               }
 
               // Save order to Firestore with custom document ID
