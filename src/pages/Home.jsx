@@ -12,7 +12,7 @@ const Home = () => {
       <WhyChoose />
       <Testimonials />
 
-      <DeploymentNote />
+      {/* <DeploymentNote /> */}
     </div>
   );
 };

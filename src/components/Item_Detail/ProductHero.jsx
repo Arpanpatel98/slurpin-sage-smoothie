@@ -4,6 +4,7 @@ import { db, auth } from '../../firebase';
 import ProductCustomization from '../ProductCustomization';
 // import LoginSignupPage from './auth/LoginSignupPage'; // Uncomment when needed
 import './product-hero copy.css';
+import { useImageLoader } from '../../hooks/useImageLoader';
 
 const ProductHero = ({ category, productId }) => {
   const [product, setProduct] = useState(null);
@@ -18,7 +19,9 @@ const ProductHero = ({ category, productId }) => {
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
-    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469';
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
+
+  const { imageSrc, isLoading } = useImageLoader(product?.image, DEFAULT_IMAGE_URL);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -175,13 +178,9 @@ const ProductHero = ({ category, productId }) => {
               )}
               <div className="smoothie-placeholder_Item_des">
                 <img
-                  src={product.image}
+                  src={imageSrc}
                   alt={product.productName}
-                  onError={(e) => {
-                    e.target.onerror = null; // Prevent infinite loop
-                    e.target.src = DEFAULT_IMAGE_URL; // Set default image
-                    console.warn(`Failed to load image for ${product.productName}: ${product.image}`);
-                  }}
+                  style={{ opacity: isLoading ? 0.5 : 1 }}
                 />
               </div>
             </div>

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import ProductCustomization from "./ProductCustomization";
 import "./Menu.css";
+import { useImageLoader } from '../hooks/useImageLoader';
 
 export default function Menu() {
   const [categories, setCategories] = useState([]);
@@ -233,6 +234,70 @@ export default function Menu() {
     );
   };
 
+  const MenuItem = ({ item, onAddToCart }) => {
+    const DEFAULT_IMAGE_URL =
+      "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
+
+    const { imageSrc, isLoading } = useImageLoader(item.image, DEFAULT_IMAGE_URL);
+
+    const itemTag = getItemTag(item);
+    const healthTags = getHealthTags(item);
+
+    return (
+      <div
+        className="menu-card"
+        key={`${item.category}-${item.id}`}
+        onClick={() => navigate(`/products/${item.category}/${item.id}`)}
+      >
+        {itemTag && <div className="item-tag">{itemTag}</div>}
+        {item.stock === 0 && (
+          <div className="out-of-stock-container_menu">
+            <span className="out-of-stock-text_menu">Out of Stock</span>
+          </div>
+        )}
+        <div className="menu-card-image">
+          <img
+            src={imageSrc}
+            alt={item.name}
+            style={{ opacity: isLoading ? 0.5 : 1 }}
+          />
+        </div>
+        <div className="menu-card-content">
+          <div className="menu-card-header">
+            <h2>{item.name}</h2>
+            <div className="price">₹{item.price}</div>
+          </div>
+          <p className="ingredients">{item.ingredients}</p>
+
+          {healthTags.length > 0 && (
+            <div className="health-tags">
+              {healthTags.map((tag) => (
+                <span
+                  key={tag}
+                  className={`health-tag ${tag.replace(/\s+/g, "-")}`}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {renderRating(item.averageRating, item.totalReviews)}
+
+          <div className="button-wrapper">
+            <button
+              className={`add-to-cart-btn ${item.stock === 0 ? 'out-of-stock-btn_menu' : ''}`}
+              onClick={(e) => handleAddToCart(e, item)}
+              disabled={item.stock === 0}
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="menu-container">
       <div className="menu-header">
@@ -268,65 +333,8 @@ export default function Menu() {
               <div className="no-data">No items available in this category.</div>
             ) : (
               items.slice(0, visibleItems).map((item) => {
-                const itemTag = getItemTag(item);
-                const healthTags = getHealthTags(item);
-
                 return (
-                  <div
-                    className="menu-card"
-                    key={`${item.category}-${item.id}`}
-                    onClick={() => navigate(`/products/${item.category}/${item.id}`)}
-                  >
-                    {itemTag && <div className="item-tag">{itemTag}</div>}
-                    {item.stock === 0 && (
-                      <div className="out-of-stock-container_menu">
-                        <span className="out-of-stock-text_menu">Out of Stock</span>
-                      </div>
-                    )}
-                    <div className="menu-card-image">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        onError={(e) => {
-                          e.target.onerror = null; // Prevent infinite loop
-                          e.target.src = DEFAULT_IMAGE_URL; // Set default image
-                          console.warn(`Failed to load image for ${item.name}: ${item.image}`);
-                        }}
-                      />
-                    </div>
-                    <div className="menu-card-content">
-                      <div className="menu-card-header">
-                        <h2>{item.name}</h2>
-                        <div className="price">₹{item.price}</div>
-                      </div>
-                      <p className="ingredients">{item.ingredients}</p>
-
-                      {healthTags.length > 0 && (
-                        <div className="health-tags">
-                          {healthTags.map((tag) => (
-                            <span
-                              key={tag}
-                              className={`health-tag ${tag.replace(/\s+/g, "-")}`}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {renderRating(item.averageRating, item.totalReviews)}
-
-                      <div className="button-wrapper">
-                        <button
-                          className={`add-to-cart-btn ${item.stock === 0 ? 'out-of-stock-btn_menu' : ''}`}
-                          onClick={(e) => handleAddToCart(e, item)}
-                          disabled={item.stock === 0}
-                        >
-                          Add to Cart
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <MenuItem key={`${item.category}-${item.id}`} item={item} onAddToCart={handleAddToCart} />
                 );
               })
             )}
