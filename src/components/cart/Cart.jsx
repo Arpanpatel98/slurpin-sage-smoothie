@@ -6,7 +6,7 @@ import RecommendedProduct from './RecommendedProduct';
 import OrderSummary from './OrderSummary';
 import ProductCustomization from './ProductCustomizationModal';
 import DeliveryForm from '../DeliveryForm';
-import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 
 const recommendedProducts = [
@@ -143,24 +143,70 @@ const Cart = () => {
           description: 'Payment for your order',
           handler: async function (response) {
             try {
+              // Generate a custom order ID
+              const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+              
               // Create order data with proper validation
               const orderData = {
+                orderId: orderId,
                 userId: auth.currentUser?.uid || null,
+                userEmail: auth.currentUser?.email || null,
+                userName: auth.currentUser?.displayName || null,
                 items: cartItems.map(item => ({
                   id: item.id,
                   name: item.name,
                   price: item.price,
                   quantity: item.quantity,
-                  addIns: item.addIns || []
+                  addIns: item.addIns || [],
+                  customization: {
+                    size: item.size || 'regular',
+                    sweetness: item.sweetness || 'normal',
+                    ice: item.ice || 'normal',
+                    toppings: item.toppings || [],
+                    boosters: item.boosters || [],
+                    specialInstructions: item.specialInstructions || '',
+                    allergies: item.allergies || [],
+                    preferences: item.preferences || []
+                  },
+                  image: item.image || null,
+                  category: item.category || null
                 })),
-                total: total,
-                paymentId: response.razorpay_payment_id || null,
-                orderId: response.razorpay_order_id || null,
-                signature: response.razorpay_signature || null,
-                deliveryAddress: selectedAddress ? addresses.find(addr => addr.id === selectedAddress) : null,
-                status: 'confirmed',
-                createdAt: new Date().toISOString(),
-                paymentStatus: 'completed'
+                orderSummary: {
+                  subtotal: calculateTotals().subtotal,
+                  addIns: calculateTotals().addIns,
+                  discount: calculateTotals().discount,
+                  tax: calculateTotals().tax,
+                  total: total
+                },
+                payment: {
+                  paymentId: response.razorpay_payment_id || null,
+                  orderId: response.razorpay_order_id || null,
+                  signature: response.razorpay_signature || null,
+                  method: 'razorpay',
+                  status: 'completed',
+                  amount: total,
+                  currency: 'INR',
+                  timestamp: new Date().toISOString()
+                },
+                delivery: {
+                  address: selectedAddress ? addresses.find(addr => addr.id === selectedAddress) : null,
+                  status: 'pending',
+                  estimatedDelivery: new Date(Date.now() + 30 * 60000).toISOString() // 30 minutes from now
+                },
+                status: {
+                  order: 'confirmed',
+                  payment: 'completed',
+                  delivery: 'pending'
+                },
+                timestamps: {
+                  created: new Date().toISOString(),
+                  updated: new Date().toISOString()
+                },
+                metadata: {
+                  source: 'web',
+                  device: navigator.userAgent,
+                  platform: 'web'
+                }
               };
 
               // Validate required fields before saving
@@ -172,21 +218,36 @@ const Cart = () => {
                 throw new Error('Order must contain items');
               }
 
-              if (!orderData.deliveryAddress) {
+              if (!orderData.delivery.address) {
                 throw new Error('Delivery address is required');
               }
 
-              // Save order to Firestore
-              const orderRef = await addDoc(collection(db, 'orders'), orderData);
+              // Save order to Firestore with custom document ID
+              const orderRef = await setDoc(doc(db, 'orders', orderId), orderData);
               
+              // Update user's order history with the same order ID
+              const userOrderRef = await setDoc(
+                doc(db, 'users', orderData.userId, 'orders', orderId),
+                orderData
+              );
+
               // Clear the cart
               clearCart();
               
               // Navigate to success page with order ID
               navigate('/order-success', { 
                 state: { 
-                  orderId: orderRef.id,
-                  total: total
+                  orderId: orderId,
+                  total: total,
+                  orderDetails: {
+                    items: orderData.items,
+                    deliveryAddress: orderData.delivery.address,
+                    estimatedDelivery: orderData.delivery.estimatedDelivery,
+                    customization: orderData.items.map(item => ({
+                      name: item.name,
+                      customization: item.customization
+                    }))
+                  }
                 }
               });
             } catch (error) {
