@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import CartItem from './CartItem';
 import RecommendedProduct from './RecommendedProduct';
 import OrderSummary from './OrderSummary';
 import ProductCustomization from './ProductCustomizationModal';
 import DeliveryForm from '../DeliveryForm';
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 
 const recommendedProducts = [
@@ -34,7 +34,8 @@ const recommendedProducts = [
 ];
 
 const Cart = () => {
-  const { cartItems, showCustomization } = useCart();
+  const navigate = useNavigate();
+  const { cartItems, showCustomization, calculateTotals, clearCart } = useCart();
   const [checkoutStep, setCheckoutStep] = useState('cart'); // 'cart' or 'delivery'
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,7 @@ const Cart = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showAllAddresses, setShowAllAddresses] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   useEffect(() => {
     if (checkoutStep === 'delivery') {
@@ -117,6 +119,112 @@ const Cart = () => {
   const handleAddNewAddress = () => {
     setEditingAddress(null);
     setAddresses([]);
+  };
+
+  const handlePayment = async () => {
+    try {
+      setPaymentProcessing(true);
+      
+      // Get the total from calculateTotals
+      const { total } = calculateTotals();
+      
+      // Load Razorpay script
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: Math.round(total * 100), // Convert to paise and ensure it's an integer
+          currency: 'INR',
+          name: 'Slurpin Sage',
+          description: 'Payment for your order',
+          handler: async function (response) {
+            try {
+              // Create order data with proper validation
+              const orderData = {
+                userId: auth.currentUser?.uid || null,
+                items: cartItems.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  quantity: item.quantity,
+                  addIns: item.addIns || []
+                })),
+                total: total,
+                paymentId: response.razorpay_payment_id || null,
+                orderId: response.razorpay_order_id || null,
+                signature: response.razorpay_signature || null,
+                deliveryAddress: selectedAddress ? addresses.find(addr => addr.id === selectedAddress) : null,
+                status: 'confirmed',
+                createdAt: new Date().toISOString(),
+                paymentStatus: 'completed'
+              };
+
+              // Validate required fields before saving
+              if (!orderData.userId) {
+                throw new Error('User ID is required');
+              }
+
+              if (!orderData.items || orderData.items.length === 0) {
+                throw new Error('Order must contain items');
+              }
+
+              if (!orderData.deliveryAddress) {
+                throw new Error('Delivery address is required');
+              }
+
+              // Save order to Firestore
+              const orderRef = await addDoc(collection(db, 'orders'), orderData);
+              
+              // Clear the cart
+              clearCart();
+              
+              // Navigate to success page with order ID
+              navigate('/order-success', { 
+                state: { 
+                  orderId: orderRef.id,
+                  total: total
+                }
+              });
+            } catch (error) {
+              console.error('Error saving order:', error);
+              setPaymentProcessing(false);
+              // Show error message to user
+              alert('There was an error processing your order. Please try again.');
+            }
+          },
+          prefill: {
+            name: auth.currentUser?.displayName || '',
+            email: auth.currentUser?.email || '',
+            contact: auth.currentUser?.phoneNumber || ''
+          },
+          theme: {
+            color: '#256029'
+          },
+          modal: {
+            ondismiss: function() {
+              setPaymentProcessing(false);
+            }
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      };
+
+      script.onerror = () => {
+        console.error('Razorpay SDK failed to load');
+        setPaymentProcessing(false);
+        alert('Failed to load payment system. Please try again.');
+      };
+    } catch (error) {
+      console.error('Error initializing payment:', error);
+      setPaymentProcessing(false);
+      alert('Failed to initialize payment. Please try again.');
+    }
   };
 
   const renderProgressBar = () => (
@@ -302,10 +410,13 @@ const Cart = () => {
                 {selectedAddress && (
                   <div className="flex justify-end">
                     <button
-                      onClick={() => {/* Handle proceed to payment */}}
-                      className="px-6 py-2 bg-sage-500 text-white rounded-lg hover:bg-sage-600 transition-colors"
+                      onClick={handlePayment}
+                      disabled={paymentProcessing}
+                      className={`px-6 py-2 bg-sage-500 text-white rounded-lg transition-colors ${
+                        paymentProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sage-600'
+                      }`}
                     >
-                      Continue to Payment
+                      {paymentProcessing ? 'Processing...' : 'Continue to Payment'}
                     </button>
                   </div>
                 )}
