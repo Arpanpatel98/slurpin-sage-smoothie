@@ -11,6 +11,8 @@ const Home = () => {
       <PopularItems />
       <WhyChoose />
       <Testimonials />
+
+      <DeploymentNote />
     </div>
   );
 };
