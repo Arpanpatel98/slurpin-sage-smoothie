@@ -7,7 +7,8 @@ import NutrientComparison from './NutrientComparison';
 import RecommendedProducts from './RecommendedProducts';
 import CustomerReviews from './CustomerReviews';
 // import './styles.css';
-import './item_de copy.css';
+import '../components/Item_Detail/item_de_copy.css';
+
 
 const ProductPage = () => {
   const { category, productId } = useParams();
