@@ -16,6 +16,7 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import CartPage from './pages/CartPage';
 import OrderSuccess from './components/OrderSuccess';
+import OrderHistory from './pages/OrderHistory';
 import './App.css';
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
               {/* <Route path="/item/:id" element={<ItemDec />} /> */}
               <Route path="/products/:category/:productId" element={<ProductPage />} />
               <Route path="/order-success" element={<OrderSuccess />} />
+              <Route path="/orders" element={<OrderHistory />} />
             </Routes>
           </main>
           <Footer />
