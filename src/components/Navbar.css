@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  background-color: #2f7d1f;
+  background-color: #137B3B;
   padding: 7px 40px;
   position: sticky;
   top: 0;
@@ -130,7 +130,7 @@
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: #2f7d1f;
+    background-color: #137B3B;
     padding: 0;
     display: none;
     text-align: center;
@@ -274,4 +274,8 @@
 .auth-link {
   display: flex;
   align-items: center;
+}
+
+.navbar .nav-link:hover {
+  background-color: #137B3B;
 }

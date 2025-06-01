@@ -42,7 +42,7 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  background-color: #48a169;
+  background-color: #137B3B;
   color: #fff;
   font-weight: 500;
   border-radius: 0.5rem;
@@ -52,7 +52,7 @@ body {
 }
 
 .order-again-button:hover {
-  background-color: #3a8254;
+  background-color: #0f5c2c;
 }
 
 /* Tabs */
@@ -73,7 +73,7 @@ body {
 }
 
 .tab-button.active {
-  color: #48a169;
+  color: #137B3B;
   font-weight: 500;
 }
 
@@ -83,7 +83,7 @@ body {
 
 .tab-badge {
   margin-left: 0.25rem;
-  background-color: #48a169;
+  background-color: #137B3B;
   color: #fff;
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
@@ -125,7 +125,7 @@ body {
 
 .search-input:focus {
   border-color: transparent;
-  box-shadow: 0 0 0 2px #48a169;
+  box-shadow: 0 0 0 2px #137B3B;
 }
 
 .search-icon {
@@ -157,7 +157,7 @@ body {
 
 .select:focus {
   border-color: transparent;
-  box-shadow: 0 0 0 2px #48a169;
+  box-shadow: 0 0 0 2px #137B3B;
   outline: none;
 }
 
@@ -248,8 +248,8 @@ body {
 }
 
 .status-badge.completed {
-  background-color: #dcfce7;
-  color: #166534;
+  background-color: #e6f3eb;
+  color: #137B3B;
 }
 
 .status-badge.cancelled {
@@ -494,7 +494,7 @@ body {
 }
 
 .summary-value.discount {
-  color: #16a34a;
+  color: #137B3B;
 }
 
 .summary-total {
@@ -523,19 +523,19 @@ body {
 }
 
 .action-button.primary {
-  background-color: #48a169;
+  background-color: #137B3B;
   color: #fff;
   border: none;
 }
 
 .action-button.primary:hover {
-  background-color: #3a8254;
+  background-color: #0f5c2c;
 }
 
 .action-button.secondary {
   background-color: #fff;
-  color: #48a169;
-  border: 1px solid #48a169;
+  color: #137B3B;
+  border: 1px solid #137B3B;
 }
 
 .action-button.secondary:hover {
@@ -574,8 +574,8 @@ body {
 }
 
 .pagination-button.active {
-  background-color: #48a169;
-  color: #48a;
+  background-color: #137B3B;
+  color: #fff;
   border-color: #fff;
 }
 
@@ -660,8 +660,8 @@ body {
 /* Custom brand colors */
 :root {
   --brand-100: #e6f3eb;
-  --brand-500: #48a169;
-  --brand-600: #3a8254;
+  --brand-500: #137B3B;
+  --brand-600: #0f5c2c;
 }
 
 .bg-brand-100 {
@@ -720,11 +720,11 @@ body {
 }
 
 .bg-green-100 {
-  background-color: #dcfce7;
+  background-color: #e6f3eb;
 }
 
 .text-green-800 {
-  color: #166534;
+  color: #137B3B;
 }
 
 .bg-red-100 {
@@ -737,11 +737,11 @@ body {
 
 /* Item color backgrounds */
 .bg-green-100 {
-  background-color: #dcfce7;
+  background-color: #e6f3eb;
 }
 
 .bg-green-200 {
-  background-color: #bbf7d0;
+  background-color: #c8e6d3;
 }
 
 .bg-purple-100 {

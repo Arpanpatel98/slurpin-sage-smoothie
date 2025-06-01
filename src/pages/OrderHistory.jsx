@@ -281,7 +281,7 @@ const OrderHistory = () => {
                               order.status === 'processing' || order.status === 'confirmed'
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : order.status === 'completed'
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-[#e6f3eb] text-[#137B3B]'
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
@@ -346,12 +346,12 @@ const OrderHistory = () => {
                               <div key={index} className="flex items-center">
                                 <div
                                   className={`flex-shrink-0 w-16 h-16 ${
-                                    index === 0 ? 'bg-green-100' : index === 1 ? 'bg-purple-100' : 'bg-yellow-100'
+                                    index === 0 ? 'bg-[#e6f3eb]' : index === 1 ? 'bg-purple-100' : 'bg-yellow-100'
                                   } rounded-lg flex items-center justify-center mr-4`}
                                 >
                                   <div
                                     className={`w-10 h-10 ${
-                                      index === 0 ? 'bg-green-200' : index === 1 ? 'bg-purple-200' : 'bg-yellow-200'
+                                      index === 0 ? 'bg-[#c8e6d3]' : index === 1 ? 'bg-purple-200' : 'bg-yellow-200'
                                     } rounded-full flex items-center justify-center`}
                                   >
                                     <svg
@@ -434,7 +434,7 @@ const OrderHistory = () => {
                                   {order.discount > 0 && (
                                     <div className="flex justify-between text-sm">
                                       <span className="text-gray-600">Loyalty Discount</span>
-                                      <span className="text-green-600">-₹{order.discount.toFixed(2)}</span>
+                                      <span className="text-[#137B3B]">-₹{order.discount.toFixed(2)}</span>
                                     </div>
                                   )}
                                   <div className="border-t border-gray-200 pt-2 mt-2">

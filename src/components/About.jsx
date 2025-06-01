@@ -27,7 +27,7 @@ function About() {
 
   // Use inline styles with imported images as fallback
   const heroStyle = {
-    backgroundImage: `linear-gradient(rgba(82, 171, 90, 0.9), rgba(82, 171, 90, 0.9)), url(${heroBg})`
+    backgroundImage: `linear-gradient(rgba(19, 123, 59, 0.9), rgba(19, 123, 59, 0.9)), url(${heroBg})`
   };
 
   const valuesStyle = {

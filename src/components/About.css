@@ -123,6 +123,10 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.about-section h1 {
+  color: #137B3B;
+}
+
 .about-section h2 {
   color: #2c3e50;
   margin-bottom: 1rem;
@@ -817,7 +821,7 @@
 }
 
 .avatar-1, .avatar-2, .avatar-3 {
-  background-color: #e8f5e9;
+  background-color: #e8f3eb;
   position: relative;
 }
 
@@ -1189,9 +1193,9 @@
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 10px 25px rgba(82, 171, 90, 0.2); }
-  50% { transform: scale(1.05); box-shadow: 0 15px 35px rgba(82, 171, 90, 0.3); }
-  100% { transform: scale(1); box-shadow: 0 10px 25px rgba(82, 171, 90, 0.2); }
+  0% { transform: scale(1); box-shadow: 0 10px 25px rgba(19, 123, 59, 0.2); }
+  50% { transform: scale(1.05); box-shadow: 0 15px 35px rgba(19, 123, 59, 0.3); }
+  100% { transform: scale(1); box-shadow: 0 10px 25px rgba(19, 123, 59, 0.2); }
 }
 
 .circular-graphic {
@@ -1255,4 +1259,130 @@
 
 .value-card:hover::before, .team-member:hover::before, .testimonial:hover::before {
   transform: translateX(100%);
+}
+
+.about-section .cta-button {
+  background-color: #137B3B;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.about-section .feature-card {
+  background-color: #e6f3eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.about-section .feature-card h3 {
+  color: #137B3B;
+}
+
+.about-section .testimonial-card {
+  background-color: #e6f3eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.about-section .testimonial-card .rating {
+  color: #137B3B;
+}
+
+.about-section .cta-section {
+  background-color: #137B3B;
+  color: #ffffff;
+}
+
+.about-section .cta-button:hover {
+  background-color: #0f5c2c;
+}
+
+.about-section .feature-icon {
+  background-color: #137B3B;
+}
+
+.about-section .feature-card:hover {
+  background: rgba(19, 123, 59, 0.3);
+}
+
+.about-section .testimonial-card .quote {
+  color: #137B3B;
+}
+
+.about-section .cta-button {
+  background-color: #137B3B;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.about-section .cta-button:hover {
+  background-color: #0f5c2c;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.about-section .feature-card {
+  background-color: #e6f3eb;
+  box-shadow: 0 15px 35px rgba(19, 123, 59, 0.2);
+  border: 8px solid rgba(19, 123, 59, 0.1);
+}
+
+.about-section .testimonial-card .quote {
+  color: #137B3B;
+}
+
+.about-section .cta-button {
+  background-color: #137B3B;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.about-section .feature-card {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-bottom: 4px solid #137B3B;
+}
+
+.about-section .feature-card {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border: 5px solid #f3f3f3;
+  background-color: #e6f3eb;
+}
+
+.about-section .testimonial-card .quote {
+  color: #137B3B;
+}
+
+.about-section .cta-button {
+  background-color: #137B3B;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.about-section .feature-card {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #137B3B;
+}
+
+.about-section .testimonial-card .quote {
+  color: #137B3B;
+}
+
+.about-section .feature-card {
+  background-color: #e6f3eb;
+}
+
+.about-section .testimonial-card .quote {
+  color: #137B3B;
+}
+
+.about-section .cta-button {
+  background-color: #137B3B;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.about-section .cta-button:hover {
+  background-color: #0f5c2c;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 10px 25px rgba(19, 123, 59, 0.2); }
+  50% { transform: scale(1.05); box-shadow: 0 15px 35px rgba(19, 123, 59, 0.3); }
+  100% { transform: scale(1); box-shadow: 0 10px 25px rgba(19, 123, 59, 0.2); }
+}
+
+.about-section .feature-card::after {
+  background: linear-gradient(90deg, transparent, #137B3B, transparent);
 }

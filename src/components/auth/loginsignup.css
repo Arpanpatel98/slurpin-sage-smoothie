@@ -81,6 +81,7 @@ body {
   justify-content: center;
   align-items: center;
   padding: 2rem;
+  background: linear-gradient(135deg, #4d8d53 0%, #137B3B 100%);
 }
 
 .auth-box {

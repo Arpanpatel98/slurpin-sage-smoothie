@@ -318,7 +318,7 @@ function DeliveryForm({ onAddressAdded, existingAddress, onCancel }) {
            <button
              type="button"
              onClick={handleGetLocation}
-             className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 disabled:bg-green-300"
+             className="w-full bg-[#137B3B] text-white p-2 rounded hover:bg-[#0f5c2c] disabled:bg-[#c8e6d3]"
              disabled={isLoading}
            >
              {isLoading ? 'Checking...' : 'Use Current Location'}
@@ -375,7 +375,7 @@ function DeliveryForm({ onAddressAdded, existingAddress, onCancel }) {
       )}
 
       {message && (
-        <p className={`mt-4 text-center ${message.includes('Sorry') || message.includes('Error') ? 'text-red-500' : 'text-green-500'}`}>
+        <p className={`mt-4 text-center ${message.includes('Sorry') || message.includes('Error') ? 'text-red-500' : 'text-[#137B3B]'}`}>
           {message}
         </p>
       )}
