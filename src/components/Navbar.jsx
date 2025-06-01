@@ -4,7 +4,7 @@ import { auth } from './auth/firebaseLoginSignup';
 import CartButton from './CartButton';
 import LoginSignupPage from './auth/LoginSignupPage';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faRightFromBracket, faClipboardList } from '@fortawesome/free-solid-svg-icons';
 import './Navbar.css';
 import Logo from '../assets/Slurpin_sage_final.png'; // Adjust the path as needed
 
@@ -72,6 +72,11 @@ function Navbar() {
           <li><Link to="/menu" onClick={handleLinkClick}>Menu</Link></li>
           <li><Link to="/about" onClick={handleLinkClick}>About</Link></li>  
           <li><Link to="/contact" onClick={handleLinkClick}>Contact</Link></li>
+          {isLoggedIn && (
+            <li>
+              <Link to="/orders" onClick={handleLinkClick}>My Orders</Link>
+            </li>
+          )}
           <li className="cart-icon">
             <CartButton />
           </li>

@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
+import { useImageLoader } from '../../hooks/useImageLoader';
 
 const CartItem = ({ item, index }) => {
   const { updateQuantity, removeFromCart, setShowCustomization, outOfStockItems } = useCart();
   const [error, setError] = useState('');
   const [stockMessage, setStockMessage] = useState('');
+
+  // Default image URL from Firebase Storage
+  const DEFAULT_IMAGE_URL =
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
+
+  const { imageSrc, isLoading } = useImageLoader(item.image, DEFAULT_IMAGE_URL);
 
   useEffect(() => {
     // Check if this item has a stock message
@@ -15,10 +22,6 @@ const CartItem = ({ item, index }) => {
       setStockMessage('');
     }
   }, [outOfStockItems, item.id]);
-
-  // Default image URL from Firebase Storage
-  const DEFAULT_IMAGE_URL =
-    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Fdefault.jpg?alt=media';
 
   const handleEdit = () => {
     setShowCustomization({
@@ -46,14 +49,10 @@ const CartItem = ({ item, index }) => {
       <div className="item_container_cartitem">
         <div className="image_container_cartitem">
           <img
-            src={item.image || DEFAULT_IMAGE_URL}
+            src={imageSrc}
             alt={item.name}
             className="image_cartitem"
-            onError={(e) => {
-              e.target.onerror = null; // Prevent infinite loop
-              e.target.src = DEFAULT_IMAGE_URL; // Set default image
-              console.warn(`Failed to load image for ${item.name}: ${item.image}`);
-            }}
+            style={{ opacity: isLoading ? 0.5 : 1 }}
           />
         </div>
         <div className="details_cartitem">

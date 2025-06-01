@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import CartItem from './CartItem';
 import RecommendedProduct from './RecommendedProduct';
 import OrderSummary from './OrderSummary';
 import ProductCustomization from './ProductCustomizationModal';
 import DeliveryForm from '../DeliveryForm';
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 
 const recommendedProducts = [
@@ -34,7 +34,8 @@ const recommendedProducts = [
 ];
 
 const Cart = () => {
-  const { cartItems, showCustomization } = useCart();
+  const navigate = useNavigate();
+  const { cartItems, showCustomization, calculateTotals, clearCart } = useCart();
   const [checkoutStep, setCheckoutStep] = useState('cart'); // 'cart' or 'delivery'
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,7 @@ const Cart = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [showAllAddresses, setShowAllAddresses] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   useEffect(() => {
     if (checkoutStep === 'delivery') {
@@ -117,6 +119,191 @@ const Cart = () => {
   const handleAddNewAddress = () => {
     setEditingAddress(null);
     setAddresses([]);
+  };
+
+  const handlePayment = async () => {
+    try {
+      setPaymentProcessing(true);
+      
+      // Get the total from calculateTotals
+      const { total } = calculateTotals();
+      
+      // Load Razorpay script
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: Math.round(total * 100), // Convert to paise and ensure it's an integer
+          currency: 'INR',
+          name: 'Slurpin Sage',
+          description: 'Payment for your order',
+          handler: async function (response) {
+            try {
+              // Generate a custom order ID
+              const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+              
+              // Create order data with proper validation
+              const orderData = {
+                orderId: orderId,
+                userId: auth.currentUser?.uid || null,
+                userEmail: auth.currentUser?.email || null,
+                userName: auth.currentUser?.displayName || null,
+                items: cartItems.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  quantity: item.quantity,
+                  addIns: item.addIns || [],
+                  customization: {
+                    size: item.size || 'regular',
+                    sweetness: item.sweetness || 'normal',
+                    ice: item.ice || 'normal',
+                    toppings: item.toppings || [],
+                    boosters: item.boosters || [],
+                    specialInstructions: item.specialInstructions || '',
+                    allergies: item.allergies || [],
+                    preferences: item.preferences || []
+                  },
+                  image: item.image || null,
+                  category: item.category || null
+                })),
+                orderSummary: {
+                  subtotal: calculateTotals().subtotal,
+                  addIns: calculateTotals().addIns,
+                  discount: calculateTotals().discount,
+                  tax: calculateTotals().tax,
+                  total: total
+                },
+                payment: {
+                  paymentId: response.razorpay_payment_id || null,
+                  orderId: response.razorpay_order_id || null,
+                  signature: response.razorpay_signature || null,
+                  method: 'razorpay',
+                  status: 'completed',
+                  amount: total,
+                  currency: 'INR',
+                  timestamp: new Date().toISOString()
+                },
+                delivery: {
+                  address: selectedAddress ? addresses.find(addr => addr.id === selectedAddress) : null,
+                  status: 'pending',
+                  estimatedDelivery: new Date(Date.now() + 30 * 60000).toISOString() // 30 minutes from now
+                },
+                status: {
+                  order: 'confirmed',
+                  payment: 'completed',
+                  delivery: 'pending'
+                },
+                timestamps: {
+                  created: new Date().toISOString(),
+                  updated: new Date().toISOString()
+                },
+                metadata: {
+                  source: 'web',
+                  device: navigator.userAgent,
+                  platform: 'web'
+                }
+              };
+
+              // Validate required fields before saving
+              if (!orderData.userId) {
+                throw new Error('User ID is required');
+              }
+
+              if (!orderData.items || orderData.items.length === 0) {
+                throw new Error('Order must contain items');
+              }
+
+              if (!orderData.delivery.address) {
+                throw new Error('Delivery address is required');
+              }
+
+              // Reduce stock for each item in the order
+              for (const item of cartItems) {
+                const productRef = doc(db, `products/config/${item.category}/${item.productId}`);
+                const productDoc = await getDoc(productRef);
+                
+                if (productDoc.exists()) {
+                  const productData = productDoc.data();
+                  const currentStock = productData.stock || 0;
+                  const newStock = Math.max(0, currentStock - item.quantity);
+                  
+                  // Update stock in Firebase
+                  await updateDoc(productRef, {
+                    stock: newStock,
+                    lastUpdated: new Date().toISOString()
+                  });
+                }
+              }
+
+              // Save order to Firestore with custom document ID
+              const orderRef = await setDoc(doc(db, 'orders', orderId), orderData);
+              
+              // Update user's order history with the same order ID
+              const userOrderRef = await setDoc(
+                doc(db, 'users', orderData.userId, 'orders', orderId),
+                orderData
+              );
+
+              // Clear the cart
+              clearCart();
+              
+              // Navigate to success page with order ID
+              navigate('/order-success', { 
+                state: { 
+                  orderId: orderId,
+                  total: total,
+                  orderDetails: {
+                    items: orderData.items,
+                    deliveryAddress: orderData.delivery.address,
+                    estimatedDelivery: orderData.delivery.estimatedDelivery,
+                    customization: orderData.items.map(item => ({
+                      name: item.name,
+                      customization: item.customization
+                    }))
+                  }
+                }
+              });
+            } catch (error) {
+              console.error('Error saving order:', error);
+              setPaymentProcessing(false);
+              // Show error message to user
+              alert('There was an error processing your order. Please try again.');
+            }
+          },
+          prefill: {
+            name: auth.currentUser?.displayName || '',
+            email: auth.currentUser?.email || '',
+            contact: auth.currentUser?.phoneNumber || ''
+          },
+          theme: {
+            color: '#256029'
+          },
+          modal: {
+            ondismiss: function() {
+              setPaymentProcessing(false);
+            }
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      };
+
+      script.onerror = () => {
+        console.error('Razorpay SDK failed to load');
+        setPaymentProcessing(false);
+        alert('Failed to load payment system. Please try again.');
+      };
+    } catch (error) {
+      console.error('Error initializing payment:', error);
+      setPaymentProcessing(false);
+      alert('Failed to initialize payment. Please try again.');
+    }
   };
 
   const renderProgressBar = () => (
@@ -302,10 +489,13 @@ const Cart = () => {
                 {selectedAddress && (
                   <div className="flex justify-end">
                     <button
-                      onClick={() => {/* Handle proceed to payment */}}
-                      className="px-6 py-2 bg-sage-500 text-white rounded-lg hover:bg-sage-600 transition-colors"
+                      onClick={handlePayment}
+                      disabled={paymentProcessing}
+                      className={`px-6 py-2 bg-sage-500 text-white rounded-lg transition-colors ${
+                        paymentProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sage-600'
+                      }`}
                     >
-                      Continue to Payment
+                      {paymentProcessing ? 'Processing...' : 'Continue to Payment'}
                     </button>
                   </div>
                 )}

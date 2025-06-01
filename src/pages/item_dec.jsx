@@ -10,7 +10,6 @@ import CustomerReviews from '../components/Item_Detail/CustomerReviews';
 import '../components/Item_Detail/item_de_copy.css';
 
 
-
 const ProductPage = () => {
   const { category, productId } = useParams();
   console.log('ProductPage params:', { category, productId }); // Debug log
