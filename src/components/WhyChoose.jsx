@@ -8,9 +8,6 @@ function WhyChoose() {
         <h2>Why Choose SlurpinSage</h2>
         
         <p className="subtitle">
-
-          HEYYYYYY THIS IS TEST
-
           We're committed to providing delicious, nutritious options that fuel your body and please your taste buds.
         </p>
       </div>
@@ -20,7 +17,7 @@ function WhyChoose() {
           <div className="feature-icon">
             <i className="fas fa-leaf"></i>
           </div>
-          <h3>100% Organic</h3>
+          <h3>100% Organic HEYYYYYY THIS IS TEST</h3>
           <p>We source only the freshest, organic ingredients from local farms to ensure maximum nutrition and flavor.</p>
         </div>
 
