@@ -7,7 +7,8 @@ import NutrientComparison from '../components/Item_Detail/NutrientComparison';
 import RecommendedProducts from '../components/Item_Detail/RecommendedProducts';
 import CustomerReviews from '../components/Item_Detail/CustomerReviews';
 // import './styles.css';
-import '../components/Item_Detail/item_de copy.css';
+import '../components/Item_Detail/item_de_copy.css';
+
 
 
 const ProductPage = () => {
