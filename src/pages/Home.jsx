@@ -12,8 +12,6 @@ const Home = () => {
       <WhyChoose />
       <Testimonials />
 
-      HIT THE FLOOR - SLURPIN SAGE - BOOM
-
       {/* <DeploymentNote /> */}
     </div>
   );

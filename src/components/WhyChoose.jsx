@@ -6,7 +6,11 @@ function WhyChoose() {
     <section className="why-choose-section">
       <div className="section-header">
         <h2>Why Choose SlurpinSage</h2>
+        
         <p className="subtitle">
+
+          HEYYYYYY THIS IS TEST
+
           We're committed to providing delicious, nutritious options that fuel your body and please your taste buds.
         </p>
       </div>
