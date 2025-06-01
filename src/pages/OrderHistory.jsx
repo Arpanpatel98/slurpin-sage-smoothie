@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../firebase';
 import './OrderHistory.css';
+import { jsPDF } from 'jspdf';
 
 const OrderHistory = () => {
   const location = useLocation();
@@ -137,6 +138,133 @@ const OrderHistory = () => {
       return 0;
     });
 
+  const downloadReceipt = async (order) => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.width;
+      const margin = 20;
+      let yPos = 20;
+
+      // Header
+      doc.setFontSize(24);
+      doc.text('SlurpinSage', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+      doc.setFontSize(12);
+      doc.text('Smoothie & Juice Bar', pageWidth / 2, yPos, { align: 'center' });
+      
+      // Receipt Title
+      yPos += 20;
+      doc.setFontSize(18);
+      doc.text('ORDER RECEIPT', pageWidth / 2, yPos, { align: 'center' });
+      
+      // Order Details
+      yPos += 20;
+      doc.setFontSize(12);
+      doc.text(`Order #${order.orderId}`, margin, yPos);
+      yPos += 10;
+      doc.text(`Date: ${new Date(order.timestamp).toLocaleString()}`, margin, yPos);
+      yPos += 10;
+      doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, margin, yPos);
+      
+      // Items Section
+      yPos += 20;
+      doc.setFontSize(14);
+      doc.text('ITEMS', margin, yPos);
+      yPos += 10;
+      
+      // Draw table header
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+      
+      // Items
+      order.items.forEach((item, index) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.text(`${item.name} (${item.size})`, margin, yPos);
+        doc.text(`₹${item.price} x ${item.quantity}`, pageWidth - margin - 60, yPos);
+        doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
+        
+        if (item.addons && item.addons.length > 0) {
+          yPos += 7;
+          doc.setFontSize(10);
+          doc.text(`Add-ons: ${item.addons.join(', ')}`, margin + 5, yPos);
+        }
+        
+        yPos += 15;
+      });
+      
+      // Summary Section
+      yPos += 10;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 15;
+      
+      doc.setFontSize(14);
+      doc.text('SUMMARY', margin, yPos);
+      yPos += 15;
+      
+      // Summary Items
+      const summaryItems = [
+        { label: 'Subtotal', value: order.total?.toFixed(2) },
+        { label: 'Add-ins', value: order.addInsTotal?.toFixed(2) },
+        { label: 'Tax', value: order.tax?.toFixed(2) }
+      ];
+      
+      if (order.discount > 0) {
+        summaryItems.push({ label: 'Loyalty Discount', value: `-${order.discount?.toFixed(2)}` });
+      }
+      
+      summaryItems.forEach(item => {
+        doc.setFontSize(12);
+        doc.text(item.label, margin, yPos);
+        doc.text(`₹${item.value}`, pageWidth - margin - 5, yPos, { align: 'right' });
+        yPos += 10;
+      });
+      
+      // Total
+      yPos += 5;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(14);
+      doc.text('Total', margin, yPos);
+      const total = ((order.total + order.addInsTotal + order.tax - (order.discount || 0)).toFixed(2));
+      doc.text(`₹${total}`, pageWidth - margin - 5, yPos, { align: 'right' });
+      
+      // Pickup Details
+      yPos += 20;
+      doc.setFontSize(14);
+      doc.text('PICKUP DETAILS', margin, yPos);
+      yPos += 15;
+      
+      doc.setFontSize(12);
+      doc.text(order.orderDetails?.location || 'Unknown Location', margin, yPos);
+      yPos += 10;
+      doc.text(order.orderDetails?.address || 'No address provided', margin, yPos);
+      
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.text('Thank you for choosing SlurpinSage!', pageWidth / 2, 285, { align: 'center' });
+        doc.text('We hope to serve you again soon!', pageWidth / 2, 290, { align: 'center' });
+      }
+      
+      doc.save(`SlurpinSage_Receipt_${order.orderId}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate receipt. Please try again.');
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -162,12 +290,6 @@ const OrderHistory = () => {
             <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
             <p className="mt-1 text-sm text-gray-500">Track and manage your SlurpinSage orders</p>
           </div>
-          <button className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
-            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Order Again
-          </button>
         </div>
 
         <div className="border-b border-gray-200 mb-8">
@@ -261,78 +383,64 @@ const OrderHistory = () => {
 
               return (
                 <div key={order.orderId} className="bg-white shadow rounded-lg overflow-hidden">
-                  <div
-                    className="px-4 py-4 sm:px-6 flex items-center justify-between cursor-pointer"
-                    onClick={() => toggleOrderDetails(order.orderId)}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                          <svg className="h-6 w-6 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 14.5c2.49 0 4.5-2.01 4.5-4.5V4c0-2.49-2.01-4.5-4.5-4.5S7.5 1.51 7.5 4v6C7.5 12.49 9.51 14.5 12 14.5zm-3.5-10c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v6c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5v-6zm7 10.5c0 2.89-2.31 5.24-5.18 5.5-.45.04-.82.4-.82.86v2.07c0 .47.38.85.85.85H15c.47 0 .85-.38.85-.85v-2.07c0-.46-.37-.82-.82-.86C14.31 20.24 12 17.89 12 15c0-.55-.45-1-1-1s-1 .45-1 1c0 3.31 2.69 6 6 6s6-2.69 6-6h-2z" />
-                          </svg>
+                  <div className="px-4 py-4 sm:px-6 cursor-pointer" onClick={() => toggleOrderDetails(order.orderId)}>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div className="flex items-center mb-3 md:mb-0">
+                        <div className="mr-4">
+                          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-brand-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                              <path d="M4.35 9.65V11.35C4.35 15.57 7.78 19 12 19C16.22 19 19.65 15.57 19.65 11.35V9.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="flex items-center">
-                          <h3 className="text-base font-semibold text-gray-900">Order #{order.orderId}</h3>
-                          <span
-                            className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        <div>
+                          <div className="flex items-center">
+                            <h3 className="font-semibold text-gray-800">Order #{order.orderId}</h3>
+                            <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               order.status === 'processing' || order.status === 'confirmed'
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : order.status === 'completed'
                                 ? 'bg-[#e6f3eb] text-[#137B3B]'
                                 : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                          </span>
+                            }`}>
+                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {new Date(order.timestamp).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })} • {totalItems} item{totalItems !== 1 ? 's' : ''} • ₹{order.total?.toFixed(2)}
+                          </p>
                         </div>
-                        <p className="mt-1 text-sm text-gray-600">
-                          {new Date(order.timestamp).toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })} • {totalItems} item{totalItems !== 1 ? 's' : ''} • ₹{order.total?.toFixed(2)}
-                        </p>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-4 ml-auto">
-                      <button
-                        className="text-brand-600 text-sm font-medium flex items-center focus:outline-none"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('Order Again clicked for order:', order.orderId);
-                        }}
-                      >
-                        Order Again
+                      <div className="flex items-center">
+                        <div className="flex-grow md:flex-grow-0 mr-4">
+                          {order.status === 'processing' && (
+                            <div className="flex flex-col">
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="text-gray-500">Order placed</span>
+                                <span className="text-gray-500">Ready for pickup</span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full">
+                                <div className="h-full bg-brand-500 rounded-full" style={{ width: '50%' }}></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         <svg
-                          className="ml-1 h-4 w-4 text-gray-400"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                          className={`w-5 h-5 text-gray-400 transform transition-transform duration-200 ${
+                            expandedOrders[order.orderId] ? 'rotate-180' : ''
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
-                      </button>
-                      <svg
-                        className={`h-5 w-5 text-gray-400 transform transition-transform duration-200 ${
-                          expandedOrders[order.orderId] ? 'rotate-180' : ''
-                        }`}
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      </div>
                     </div>
                   </div>
 
@@ -450,7 +558,14 @@ const OrderHistory = () => {
                             </div>
                           </div>
                           <div className="mt-6 space-y-3">
-                            <button className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                            <button 
+                              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                await downloadReceipt(order);
+                              }}
+                            >
                               <svg
                                 className="-ml-1 mr-3 h-5 w-5"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -466,27 +581,6 @@ const OrderHistory = () => {
                                 />
                               </svg>
                               Download Receipt
-                            </button>
-                            <button
-                              className="ml-auto text-brand-600 text-sm font-medium flex items-center focus:outline-none"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('Order Again clicked for order:', order.orderId);
-                              }}
-                            >
-                              Order Again
-                              <svg
-                                className="ml-1 h-4 w-4 text-gray-400"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
                             </button>
                           </div>
                         </div>
