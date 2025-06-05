@@ -5,6 +5,7 @@ import ProductCustomization from '../ProductCustomization';
 // import LoginSignupPage from './auth/LoginSignupPage'; // Uncomment when needed
 import './product-hero copy.css';
 import { useImageLoader } from '../../hooks/useImageLoader';
+import '../auth/loginsignup.css';
 
 const ProductHero = ({ category, productId }) => {
   const [product, setProduct] = useState(null);
@@ -262,7 +263,7 @@ const ProductHero = ({ category, productId }) => {
       {showLoginModal && (
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>
+            <button className="modal-close_loginSignup" onClick={() => setShowLoginModal(false)}>
               ×
             </button>
             {/* <LoginSignupPage

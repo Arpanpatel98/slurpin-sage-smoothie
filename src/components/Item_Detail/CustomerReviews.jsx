@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import LoginSignupPage from '../auth/LoginSignupPage';
 import './customer-reviews copy.css';
+import '../auth/loginsignup.css';
 
 function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
   const navigate = useNavigate();
@@ -228,7 +229,7 @@ function CustomerReviews({ productId = 'morning-glory-smoothie' }) {
         {showLoginModal && (
           <div className="modal-overlay" onClick={handleCloseModal}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={handleCloseModal}>×</button>
+              <button className="modal-close_loginSignup" onClick={handleCloseModal}>×</button>
               <LoginSignupPage />
             </div>
           </div>

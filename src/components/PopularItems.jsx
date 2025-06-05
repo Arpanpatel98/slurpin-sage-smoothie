@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import "./PopularItems.css";
 import ProductCustomization from "./ProductCustomization";
 import LoginSignupPage from "./auth/LoginSignupPage";
+import './auth/loginsignup.css';
 
 const PopularItems = () => {
   const [popularItems, setPopularItems] = useState([]);
@@ -237,7 +238,7 @@ const PopularItems = () => {
       {showLoginModal && (
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            <button className="modal-close_loginSignup" onClick={() => setShowLoginModal(false)}>×</button>
             <LoginSignupPage onSuccess={() => setShowLoginModal(false)} />
           </div>
         </div>

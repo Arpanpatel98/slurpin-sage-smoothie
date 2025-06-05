@@ -385,7 +385,7 @@ const ContactForm = () => {
       {showLoginModal && (
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowLoginModal(false)}>×</button>
+            <button className="modal-close_loginSignup" onClick={() => setShowLoginModal(false)}>×</button>
             <LoginSignupPage onSuccess={handleLoginSuccess} />
           </div>
         </div>

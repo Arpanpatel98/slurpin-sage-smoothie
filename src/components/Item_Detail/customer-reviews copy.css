@@ -354,7 +354,7 @@
   justify-content: center;
   align-items: center;
 }
-
+/* 
 .modal-close {
   position: absolute;
   top: 1rem;
@@ -367,11 +367,11 @@
   padding: 0.5rem;
   line-height: 1;
   transition: color 0.2s;
-}
+} */
 
-.modal-close:hover {
+/* .modal-close:hover {
   color: #374151;
-}
+} */
 
 @keyframes fadeIn {
   from {

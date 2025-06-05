@@ -215,7 +215,7 @@
   position: relative;
 } */
 
-.modal-close {
+/* .modal-close {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -225,7 +225,7 @@
   color: #333;
   cursor: pointer;
   z-index: 1001;
-}
+} */
 
 .error_Item_des {
   color: #dc2626;
