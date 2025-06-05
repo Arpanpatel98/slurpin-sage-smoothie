@@ -98,7 +98,7 @@ const AdminDashboard = () => {
     const q = query(collection(db, 'orders'));
     const unsubscribe = onSnapshot(
       q,
-      async (snapshot) => {
+      (snapshot) => {
         const fetchedOrders = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
@@ -118,18 +118,15 @@ const AdminDashboard = () => {
                 ...(item.customization?.toppings?.map((t) => t.name) || []),
               ].filter(Boolean),
             })) || [],
-            customerName: data.customerName || 'Anonymous',
-            customerEmail: data.customerEmail || 'No email provided',
+            customerName: data.userName || 'Anonymous',
+            customerEmail: data.userEmail || 'No email provided',
             customerPhone: data.customerPhone || 'No phone provided',
             userId: data.userId || null,
             delivery: {
-              displayName: data.delivery?.displayName || 'Unknown Location',
-              detailedAddress: data.delivery?.detailedAddress || 'No address provided',
-              floor: data.delivery?.floor || '',
-              landmark: data.delivery?.landmark || '',
-              lat: data.delivery?.lat || null,
-              lon: data.delivery?.lon || null,
-              estimatedDelivery: data.delivery?.estimatedDelivery || null
+              detailedAddress: data.delivery?.address?.detailedAddress || '',
+              floor: data.delivery?.address?.floor || '',
+              status: data.delivery?.status || 'pending',
+              estimatedDelivery: data.delivery?.estimatedDelivery || '',
             },
             paymentMethod: data.payment?.method || 'Not specified',
             paymentStatus: data.payment?.status || 'pending',
@@ -227,7 +224,7 @@ const AdminDashboard = () => {
       }
 
       // Location Filter
-      if (locationFilter && order.delivery.displayName.toLowerCase() !== locationFilter.toLowerCase()) {
+      if (locationFilter && order.delivery.detailedAddress.toLowerCase() !== locationFilter.toLowerCase()) {
         return false;
       }
 
@@ -667,29 +664,9 @@ const AdminDashboard = () => {
                             </select>
                           </td>
                           <td className="px-6_AdminDashboard py-4_AdminDashboard whitespace-nowrap_AdminDashboard text-sm_AdminDashboard text-gray-500_AdminDashboard">
-                            {/* Display delivery address */}
-                            <div className="flex_AdminDashboard flex-col_AdminDashboard">
-                              <span className="font-medium_AdminDashboard text-gray-900_AdminDashboard">
-                                {order.delivery?.displayName || 'No location specified'}
-                              </span>
-                              <span className="text-xs_AdminDashboard text-gray-500_AdminDashboard">
-                                {order.delivery?.detailedAddress || 'No address provided'}
-                              </span>
-                              {order.delivery?.floor && (
-                                <span className="text-xs_AdminDashboard text-gray-500_AdminDashboard">
-                                  Floor: {order.delivery.floor}
-                                </span>
-                              )}
-                              {order.delivery?.landmark && (
-                                <span className="text-xs_AdminDashboard text-gray-400_AdminDashboard italic_AdminDashboard">
-                                  Landmark: {order.delivery.landmark}
-                                </span>
-                              )}
-                              {order.delivery?.estimatedDelivery && (
-                                <span className="text-xs_AdminDashboard text-gray-400_AdminDashboard">
-                                  Est. Delivery: {new Date(order.delivery.estimatedDelivery).toLocaleString()}
-                                </span>
-                              )}
+                            <div>
+                              {order.delivery.detailedAddress}
+                              {order.delivery.floor && `, Floor ${order.delivery.floor}`}
                             </div>
                           </td>
                           <td className="px-6_AdminDashboard py-4_AdminDashboard whitespace-nowrap_AdminDashboard text-right_AdminDashboard text-sm_AdminDashboard font-medium_AdminDashboard">
@@ -767,10 +744,8 @@ const AdminDashboard = () => {
                                         
                                         <div className="border-t_AdminDashboard border-gray-200_AdminDashboard pt-4_AdminDashboard">
                                           <h5 className="text-xs_AdminDashboard font-medium_AdminDashboard text-gray-700_AdminDashboard uppercase_AdminDashboard mb-2_AdminDashboard">Delivery Details</h5>
-                                          <p className="text-sm_AdminDashboard text-gray-800_AdminDashboard">{order.delivery.displayName}</p>
-                                          <p className="text-sm_AdminDashboard text-gray-600_AdminDashboard">{order.delivery.detailedAddress}</p>
+                                          <p className="text-sm_AdminDashboard text-gray-800_AdminDashboard">{order.delivery.detailedAddress}</p>
                                           <p className="text-sm_AdminDashboard text-gray-600_AdminDashboard">{order.delivery.floor && `Floor: ${order.delivery.floor}`}</p>
-                                          <p className="text-sm_AdminDashboard text-gray-600_AdminDashboard">{order.delivery.landmark && `Landmark: ${order.delivery.landmark}`}</p>
                                           <p className="text-sm_AdminDashboard text-gray-600_AdminDashboard">{order.delivery.estimatedDelivery && `Est. Delivery: ${new Date(order.delivery.estimatedDelivery).toLocaleString()}`}</p>
                                         </div>
                                         
