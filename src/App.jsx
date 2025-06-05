@@ -17,6 +17,8 @@ import 'aos/dist/aos.css';
 import CartPage from './pages/CartPage';
 import OrderSuccess from './components/OrderSuccess';
 import OrderHistory from './pages/OrderHistory';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import OrderDetails from './pages/admin/OrderDetails';
 import './App.css';
 
 function App() {
@@ -44,6 +46,8 @@ function App() {
               <Route path="/products/:category/:productId" element={<ProductPage />} />
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/orders/:orderId" element={<OrderDetails />} />
             </Routes>
           </main>
           <Footer />
@@ -53,4 +57,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

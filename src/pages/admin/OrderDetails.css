@@ -1,0 +1,385 @@
+.order-details-page_AdminDashboard {
+    padding: 2rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #f8faf9;
+    min-height: 100vh;
+  }
+  
+  .order-details-header_AdminDashboard {
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  
+  .back-button_AdminDashboard {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 0.5rem 1rem;
+    background-color: #fff;
+    border: 1px solid #e6f3eb;
+    border-radius: 0.5rem;
+    color: #137B3B;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .back-button_AdminDashboard:hover {
+    background-color: #e6f3eb;
+  }
+  
+  .order-details-header_AdminDashboard h1 {
+    text-align: center;
+    color: #1f2937;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  
+  .order-details-container_AdminDashboard {
+    background-color: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e6f3eb;
+    overflow: hidden;
+  }
+  
+  .order-status-section_AdminDashboard {
+    padding: 2rem;
+    text-align: center;
+    background-color: #f8faf9;
+    border-bottom: 1px solid #e6f3eb;
+  }
+  
+  .order-status-section_AdminDashboard h2 {
+    color: #1f2937;
+    font-size: 1.25rem;
+    margin: 0 0 1rem 0;
+  }
+  
+  .status-badge_AdminDashboard {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  
+  .status-badge_AdminDashboard.pending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .status-badge_AdminDashboard.processing {
+    background-color: #ccfbf1;
+    color: #0f766e;
+  }
+  
+  .status-badge_AdminDashboard.cooking {
+    background-color: #ffedd5;
+    color: #c2410c;
+  }
+  
+  .status-badge_AdminDashboard.ready {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  
+  .status-badge_AdminDashboard.out_for_delivery {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+  
+  .status-badge_AdminDashboard.delivered {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+  
+  .order-date_AdminDashboard {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+  }
+  
+  .order-sections_AdminDashboard {
+    padding: 2rem;
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  section h3 {
+    color: #1f2937;
+    font-size: 1.125rem;
+    margin: 0 0 1rem 0;
+  }
+  
+  .info-card_AdminDashboard {
+    background-color: #f8faf9;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e6f3eb;
+  }
+  
+  .info-card_AdminDashboard p {
+    margin: 0.5rem 0;
+    color: #4b5563;
+    font-size: 0.875rem;
+  }
+  
+  .info-card_AdminDashboard p:first-child {
+    margin-top: 0;
+  }
+  
+  .info-card_AdminDashboard p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .items-list_AdminDashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .item-card_AdminDashboard {
+    background-color: #f8faf9;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e6f3eb;
+  }
+  
+  .item-header_AdminDashboard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  
+  .item-header_AdminDashboard h4 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1rem;
+  }
+  
+  .item-quantity_AdminDashboard {
+    background-color: #137B3B;
+    color: #fff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+  }
+  
+  .item-details_AdminDashboard p {
+    margin: 0.25rem 0;
+    color: #4b5563;
+    font-size: 0.875rem;
+  }
+  
+  .addons_AdminDashboard {
+    color: #6b7280;
+    font-size: 0.75rem;
+  }
+  
+  .item-price_AdminDashboard {
+    margin-top: 0.5rem;
+    font-weight: 500;
+    color: #137B3B;
+  }
+  
+  .summary-card_AdminDashboard {
+    background-color: #f8faf9;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e6f3eb;
+  }
+  
+  .summary-row_AdminDashboard {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    color: #4b5563;
+    font-size: 0.875rem;
+  }
+  
+  .summary-row_AdminDashboard.discount {
+    color: #dc2626;
+  }
+  
+  .summary-row_AdminDashboard.total {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e6f3eb;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 1rem;
+  }
+  
+  @media (max-width: 768px) {
+    .order-details-page_AdminDashboard {
+      padding: 1rem;
+    }
+  
+    .order-sections_AdminDashboard {
+      padding: 1rem;
+      grid-template-columns: 1fr;
+    }
+  
+    .back-button_AdminDashboard {
+      position: static;
+      margin-bottom: 1rem;
+    }
+  
+    .order-details-header_AdminDashboard h1 {
+      margin-bottom: 1rem;
+    }
+  }
+
+.loading_AdminDashboard {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.error_AdminDashboard {
+  text-align: center;
+  padding: 2rem;
+  color: #dc2626;
+  font-size: 1.2rem;
+}
+
+.order-header_AdminDashboard {
+  margin-bottom: 2rem;
+}
+
+.order-title_AdminDashboard {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.order-date_AdminDashboard {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.order-status_AdminDashboard {
+  margin-bottom: 2rem;
+}
+
+.status-select_AdminDashboard {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  background-color: #fff;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.order-content_AdminDashboard {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.items-list_AdminDashboard {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.order-item_AdminDashboard {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-item_AdminDashboard:last-child {
+  border-bottom: none;
+}
+
+.item-details_AdminDashboard {
+  flex: 1;
+}
+
+.item-name_AdminDashboard {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.item-variant_AdminDashboard {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.item-addons_AdminDashboard {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.item-quantity_AdminDashboard {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-left: 0.5rem;
+}
+
+.item-price_AdminDashboard {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.order-summary_AdminDashboard {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  height: fit-content;
+}
+
+.summary-title_AdminDashboard {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+}
+
+.summary-row_AdminDashboard {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  color: #4b5563;
+}
+
+.summary-row_AdminDashboard.discount_AdminDashboard {
+  color: #059669;
+}
+
+.summary-row_AdminDashboard.total_AdminDashboard {
+  font-weight: 600;
+  color: #1f2937;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .order-content_AdminDashboard {
+    grid-template-columns: 1fr;
+  }
+  
+  .order-details-page_AdminDashboard {
+    padding: 1rem;
+  }
+} 
