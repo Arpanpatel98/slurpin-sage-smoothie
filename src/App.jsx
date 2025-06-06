@@ -56,14 +56,42 @@ function App() {
                 <Home />
               </MainLayout>
             } />
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<ContactForm />} />
-            <Route path="/cart" element={<CartPage />} />
+            <Route path="/menu" element={
+              <MainLayout>
+                <Menu />
+              </MainLayout>
+            } />
+            <Route path="/about" element={
+              <MainLayout>
+                <About />
+              </MainLayout>
+            } />
+            <Route path="/contact" element={
+              <MainLayout>
+                <ContactForm />
+              </MainLayout>
+            } />
+            <Route path="/cart" element={
+              <MainLayout>
+                <CartPage />
+              </MainLayout>
+            } />
             {/* <Route path="/item/:id" element={<ItemDec />} /> */}
-            <Route path="/products/:category/:productId" element={<ProductPage />} />
-            <Route path="/order-success" element={<OrderSuccess />} />
-            <Route path="/orders" element={<OrderHistory />} />
+            <Route path="/products/:category/:productId" element={
+              <MainLayout>
+                <ProductPage />
+              </MainLayout>
+            } />
+            <Route path="/order-success" element={
+              <MainLayout>
+                <OrderSuccess />
+              </MainLayout>
+            } />
+            <Route path="/orders" element={
+              <MainLayout>
+                <OrderHistory />
+              </MainLayout>
+            } />
           </Routes>
         </div>
       </Router>
