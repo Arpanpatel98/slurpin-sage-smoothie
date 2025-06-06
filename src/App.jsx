@@ -21,6 +21,28 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import OrderDetails from './pages/admin/OrderDetails';
 import './App.css';
 
+// Add AdminLayout component
+const AdminLayout = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {children}
+    </div>
+  );
+};
+
+// Add MainLayout component
+const MainLayout = ({ children }) => {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <main className="flex-grow">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
 function App() {
   useEffect(() => {
     AOS.init({
@@ -34,23 +56,34 @@ function App() {
     <CartProvider>
       <Router>
         <div className="App">
-          <Navbar />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<ContactForm />} />
-              <Route path="/cart" element={<CartPage />} />
-              {/* <Route path="/item/:id" element={<ItemDec />} /> */}
-              <Route path="/products/:category/:productId" element={<ProductPage />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
-              <Route path="/orders" element={<OrderHistory />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/orders/:orderId" element={<OrderDetails />} />
-            </Routes>
-          </main>
-          <Footer />
+          <Routes>
+            {/* Admin routes with AdminLayout */}
+            <Route path="/admin" element={
+              <AdminLayout>
+                <AdminDashboard />
+              </AdminLayout>
+            } />
+            <Route path="/admin/orders/:orderId" element={
+              <AdminLayout>
+                <OrderDetails />
+              </AdminLayout>
+            } />
+
+            {/* Other routes with MainLayout */}
+            <Route path="/" element={
+              <MainLayout>
+                <Home />
+              </MainLayout>
+            } />
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<ContactForm />} />
+            <Route path="/cart" element={<CartPage />} />
+            {/* <Route path="/item/:id" element={<ItemDec />} /> */}
+            <Route path="/products/:category/:productId" element={<ProductPage />} />
+            <Route path="/order-success" element={<OrderSuccess />} />
+            <Route path="/orders" element={<OrderHistory />} />
+          </Routes>
         </div>
       </Router>
     </CartProvider>

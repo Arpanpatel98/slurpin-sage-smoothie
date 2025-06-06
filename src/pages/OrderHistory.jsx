@@ -16,7 +16,12 @@ const OrderHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
+  const DEFAULT_IMAGE_URL =
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
+    
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
@@ -42,7 +47,7 @@ const OrderHistory = () => {
             timestamp: data.timestamps?.created || new Date().toISOString(),
             total: data.orderSummary?.subtotal || 0,
             addInsTotal: data.orderSummary?.addIns || 0,
-            tax: data.orderSummary?.tax || 0, // Fetch tax
+            tax: data.orderSummary?.tax || 0,
             items: data.items?.map((item) => ({
               name: item.name,
               size: item.customization?.size || 'regular',
@@ -53,12 +58,14 @@ const OrderHistory = () => {
                 ...(item.customization?.boosters?.map((b) => b.name) || []),
                 ...(item.customization?.toppings?.map((t) => t.name) || []),
               ].filter(Boolean),
+              image: item.image || null,
             })) || [],
             orderDetails: {
               location: data.delivery?.displayName || 'Unknown Location',
               address: data.delivery?.detailedAddress || 'No address provided',
             },
             discount: data.orderSummary?.discount || 0,
+            image: data.items?.[0]?.image || null,
           };
         });
         setOrders(fetchedOrders);
@@ -90,12 +97,14 @@ const OrderHistory = () => {
             ...(item.customization?.boosters?.map((b) => b.name) || []),
             ...(item.customization?.toppings?.map((t) => t.name) || []),
           ].filter(Boolean),
+          image: item.image || null,
         })) || [],
         orderDetails: {
           location: location.state.newOrder.delivery?.displayName || 'Unknown Location',
           address: location.state.newOrder.delivery?.detailedAddress || 'No address provided',
         },
         discount: location.state.newOrder.orderSummary?.discount || 0,
+        image: location.state.newOrder.image || null,
       };
       setOrders((prevOrders) => [newOrder, ...prevOrders]);
       setExpandedOrders((prev) => ({
@@ -137,6 +146,12 @@ const OrderHistory = () => {
       if (sortBy === 'oldest') return new Date(a.timestamp) - new Date(b.timestamp);
       return 0;
     });
+
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
   const downloadReceipt = async (order) => {
     try {
@@ -347,7 +362,7 @@ const OrderHistory = () => {
           </div>
           <div className="flex space-x-4">
             <select
-              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm rounded-md"
+              className="block w-full pl-3 pr-1 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm rounded-md"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -370,7 +385,7 @@ const OrderHistory = () => {
         </div>
 
         <div className="space-y-6">
-          {filteredOrders.length === 0 ? (
+          {paginatedOrders.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -378,7 +393,7 @@ const OrderHistory = () => {
               <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
             </div>
           ) : (
-            filteredOrders.map((order, index) => {
+            paginatedOrders.map((order, index) => {
               const totalItems = order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
               return (
@@ -387,12 +402,32 @@ const OrderHistory = () => {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center mb-3 md:mb-0">
                         <div className="mr-4">
-                          <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-brand-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                              <path d="M4.35 9.65V11.35C4.35 15.57 7.78 19 12 19C16.22 19 19.65 15.57 19.65 11.35V9.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                            </svg>
+                          <div className="w-12 h-12 bg-brand-100 
+                          rounded-full flex items-center 
+                          justify-center">
+                            <svg className="w-6 h-6 text-brand-500" 
+                            fill="none" stroke="currentColor" 
+                            viewBox="0 0 24 24" xmlns="http://www.w3.
+                            org/2000/svg">
+                              <path strokeLinecap="round" 
+                              strokeLinejoin="round" strokeWidth="2" 
+                              d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 
+                              12H4L5 9z"></path>
+</svg>
                           </div>
+                          {/* <div className="w-12 h-12 bg-brand-100 rounded-full flex items-center justify-center overflow-hidden">
+                            {order.image ? (
+                              <img 
+                                src={order.image} 
+                                alt={`Product for order #${order.orderId}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <svg className="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                              </svg>
+                            )}
+                          </div> */}
                         </div>
                         <div>
                           <div className="flex items-center">
@@ -455,28 +490,17 @@ const OrderHistory = () => {
                                 <div
                                   className={`flex-shrink-0 w-16 h-16 ${
                                     index === 0 ? 'bg-[#e6f3eb]' : index === 1 ? 'bg-purple-100' : 'bg-yellow-100'
-                                  } rounded-lg flex items-center justify-center mr-4`}
+                                  } rounded-lg flex items-center justify-center mr-4 overflow-hidden`}
                                 >
-                                  <div
-                                    className={`w-10 h-10 ${
-                                      index === 0 ? 'bg-[#c8e6d3]' : index === 1 ? 'bg-purple-200' : 'bg-yellow-200'
-                                    } rounded-full flex items-center justify-center`}
-                                  >
-                                    <svg
-                                      className="w-6 h-6 text-brand-600"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        d="M12 15.5C14.21 15.5 16 13.71 16 11.5V6C16 3.79 14.21 2 12 2C9.79 2 8 3.79 8 6V11.5C8 13.71 9.79 15.5 12 15.5Z"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  </div>
+                                  <img 
+                                    src={item.image || DEFAULT_IMAGE_URL} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = DEFAULT_IMAGE_URL;
+                                    }}
+                                  />
                                 </div>
                                 <div className="flex-grow flex justify-between items-center">
                                   <div>
@@ -517,10 +541,10 @@ const OrderHistory = () => {
                               <div className="border-t border-gray-200 pt-4">
                                 <h5 className="text-sm font-medium text-gray-900">Payment Method</h5>
                                 <div className="mt-1 flex items-center">
-                                  <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                                  {/* <svg className="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M4,4h16c1.1,0,2,0.9,2,2v12c0,1.1-0.9,2-2,2H4c-1.1,0-2-0.9-2-2V6C2,4.9,2.9,4,4,4z" />
                                     <path fill="#ffffff" d="M20,10H4v6h16V10z" />
-                                  </svg>
+                                  </svg> */}
                                   <span className="ml-2 text-sm text-gray-600">•••• 4242</span>
                                 </div>
                               </div>
@@ -595,46 +619,32 @@ const OrderHistory = () => {
 
         <div className="mt-8 flex justify-center">
           <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-            <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
               <span className="sr-only">Previous</span>
-              <svg
-                className="h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
+              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+            </button>
+            {[...Array(totalPages).keys()].map((num) => (
+              <button
+                key={num + 1}
+                onClick={() => setCurrentPage(num + 1)}
+                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 ${
+                  currentPage === num + 1 ? 'bg-brand-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                } text-sm font-medium`}
               >
-                <path
-                  fillRule="evenodd"
-                  d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-brand-600 text-sm font-medium text-white">
-              1
-            </button>
-            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-              2
-            </button>
-            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-              3
-            </button>
-            <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                {num + 1}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+            >
               <span className="sr-only">Next</span>
-              <svg
-                className="h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
             </button>
           </nav>
         </div>
