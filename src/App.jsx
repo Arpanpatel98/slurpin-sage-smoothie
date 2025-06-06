@@ -17,18 +17,8 @@ import 'aos/dist/aos.css';
 import CartPage from './pages/CartPage';
 import OrderSuccess from './components/OrderSuccess';
 import OrderHistory from './pages/OrderHistory';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import OrderDetails from './pages/admin/OrderDetails';
+import AdminLayout from './pages/admin/AdminLayout';
 import './App.css';
-
-// Add AdminLayout component
-const AdminLayout = ({ children }) => {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {children}
-    </div>
-  );
-};
 
 // Add MainLayout component
 const MainLayout = ({ children }) => {
@@ -58,16 +48,7 @@ function App() {
         <div className="App">
           <Routes>
             {/* Admin routes with AdminLayout */}
-            <Route path="/admin" element={
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            } />
-            <Route path="/admin/orders/:orderId" element={
-              <AdminLayout>
-                <OrderDetails />
-              </AdminLayout>
-            } />
+            <Route path="/admin/*" element={<AdminLayout />} />
 
             {/* Other routes with MainLayout */}
             <Route path="/" element={

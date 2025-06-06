@@ -21,7 +21,7 @@ const OrderHistory = () => {
 
   const DEFAULT_IMAGE_URL =
     "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
-    
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
@@ -636,7 +636,7 @@ const OrderHistory = () => {
                 } text-sm font-medium`}
               >
                 {num + 1}
-              </button>
+            </button>
             ))}
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
