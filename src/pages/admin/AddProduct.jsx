@@ -142,13 +142,21 @@ const AddProduct = () => {
             return null;
         }
 
+        if (!formData.name) {
+            setError('Please enter product name first');
+            return null;
+        }
+
         setUploading(true);
         setError(null);
         
         try {
             const timestamp = Date.now();
             const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
-            const filename = `${formData.category}/${timestamp}_${sanitizedFileName}`;
+            const sanitizedProductName = formData.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+            
+            // Create path: products/category/product-name/timestamp_filename
+            const filename = `${formData.category}/${sanitizedProductName}/${timestamp}_${sanitizedFileName}`;
             
             const storageRef = ref(storage, `products/${filename}`);
 
@@ -157,6 +165,7 @@ const AddProduct = () => {
                 customMetadata: {
                     uploadedBy: auth.currentUser.uid,
                     category: formData.category,
+                    productName: formData.name,
                     timestamp: timestamp.toString()
                 }
             };
