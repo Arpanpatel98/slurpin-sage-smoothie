@@ -25,7 +25,7 @@ const PopularItems = () => {
       setLoading(true);
       setError(null);
       try {
-        const categories = ["smoothies", "milkshakes","bowls"];
+        const categories = ["smoothies", "milkshakes", "bowls"];
         let items = [];
         const tagMap = {
           "morning-glory-smoothie": "BESTSELLER",
@@ -41,6 +41,10 @@ const PopularItems = () => {
           }
           querySnapshot.forEach((doc) => {
             const data = doc.data();
+            // Skip inactive products
+            if (data.isActive === false) {
+              return;
+            }
             items.push({
               id: doc.id,
               category,
@@ -52,6 +56,7 @@ const PopularItems = () => {
               image: data.imageUrl || DEFAULT_IMAGE_URL,
               tag: tagMap[doc.id] || null,
               stock: data.stock || 0,
+              isActive: data.isActive !== false,
             });
           });
         }
@@ -65,48 +70,7 @@ const PopularItems = () => {
       } catch (error) {
         console.error("Error fetching popular items:", error.message);
         setError("Failed to load popular items. Using fallback data.");
-        const fallbackItems = [
-          {
-            id: "morning-glory-smoothie",
-            category: "smoothies",
-            name: "MORNING GLORY SMOOTHIE",
-            ingredients:
-              "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
-            price: 500,
-            image: DEFAULT_IMAGE_URL,
-            tag: "BESTSELLER",
-            stock: 0,
-          },
-          {
-            id: "banana-date-shake",
-            category: "milkshakes",
-            name: "BANANA DATE SHAKE",
-            ingredients: "Banana, Dates, Milk",
-            price: 149,
-            image: DEFAULT_IMAGE_URL,
-            tag: "NEW",
-            stock: 0,
-          },
-          {
-            id: "chocolate-milkshake",
-            category: "milkshakes",
-            name: "CHOCOLATE MILKSHAKE",
-            ingredients: "Cacao Powder, Milk, Dates, Jaggery Powder, Vanilla Extract",
-            price: 159,
-            image: DEFAULT_IMAGE_URL,
-            stock: 0,
-          },
-          {
-            id: "virgin-pina-colada",
-            category: "smoothies",
-            name: "VIRGIN PINA COLADA",
-            ingredients: "Fresh Pineapple, Freshly Made Coconut Milk, Dates, Ice",
-            price: 219,
-            image: DEFAULT_IMAGE_URL,
-            stock: 0,
-          },
-        ];
-        setPopularItems(fallbackItems);
+        setPopularItems([]);
       } finally {
         setLoading(false);
       }

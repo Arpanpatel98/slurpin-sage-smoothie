@@ -1,0 +1,382 @@
+/* Stats Cards */
+.stock-badge {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.stock-badge.stock-good {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.stock-badge.stock-low {
+  background-color: #fef9c3;
+  color: #854d0e;
+}
+
+.stock-badge.stock-out {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2.5rem;
+  height: 1.5rem;
+  margin-left: 0.5rem;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+  transition: all 0.3s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 1rem;
+  width: 1rem;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+input:checked + .toggle-slider {
+  background-color: #059669;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(1rem);
+}
+
+/* Category Tabs */
+.tab {
+  position: relative;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.tab.active {
+  color: #059669;
+}
+
+/* Table Styles */
+.products-table-container {
+  width: 100%;
+  overflow-x: auto;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.products-table th {
+  background-color: #f9fafb;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.products-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+/* Product Info Styles */
+.product-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 300px;
+}
+
+.product-image {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.375rem;
+  object-fit: cover;
+}
+
+.product-info h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+}
+
+.product-info p {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Category Column */
+.products-table td:nth-child(2) {
+  text-transform: capitalize;
+  color: #4b5563;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+/* Price Column */
+.products-table td:nth-child(3) {
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+}
+
+/* Stock Control Styles */
+.stock-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  min-width: 120px;
+}
+
+.stock-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.125rem;
+  width: fit-content;
+}
+
+.stock-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.stock-btn:hover:not(:disabled) {
+  background-color: #e5e7eb;
+  color: #1f2937;
+}
+
+.stock-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stock-btn.increment {
+  color: #059669;
+}
+
+.stock-btn.decrement {
+  color: #dc2626;
+}
+
+.stock-input {
+  width: 3.5rem;
+  padding: 0.25rem;
+  border: none;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  background-color: transparent;
+  -moz-appearance: textfield;
+}
+
+.stock-input::-webkit-outer-spin-button,
+.stock-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stock-input:focus {
+  outline: none;
+}
+
+.stock-input:disabled {
+  background-color: transparent;
+  cursor: not-allowed;
+}
+
+/* Status Column */
+.products-table td:nth-child(5) {
+  min-width: 100px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  min-width: 100px;
+}
+
+.edit-btn, .delete-btn {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-btn {
+  color: #4f46e5;
+  background-color: transparent;
+}
+
+.edit-btn:hover {
+  background-color: #eef2ff;
+  color: #4338ca;
+}
+
+.delete-btn {
+  color: #dc2626;
+  background-color: transparent;
+}
+
+.delete-btn:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Stock Badge */
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.stock-badge.good-stock {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.stock-badge.low-stock {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.stock-badge.out-of-stock {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Pagination */
+.pagination-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.pagination-button:hover {
+  background-color: #f9fafb;
+}
+
+.pagination-button.active {
+  z-index: 10;
+  background-color: #ecfdf5;
+  border-color: #059669;
+  color: #059669;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .products-table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+  
+  .product-info {
+    min-width: 250px;
+  }
+  
+  .product-info p {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .products-table th,
+  .products-table td {
+    padding: 0.75rem;
+  }
+  
+  .product-info {
+    min-width: 200px;
+  }
+  
+  .product-info p {
+    max-width: 120px;
+  }
+  
+  .stock-control {
+    min-width: 100px;
+  }
+}
+
+.btn-primary {
+    background-color: #10b981;
+    color: white;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+} 

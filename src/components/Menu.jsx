@@ -57,6 +57,12 @@ export default function Menu() {
           const categoryItems = await Promise.all(
             querySnapshot.docs.map(async (doc) => {
               const productData = doc.data();
+              
+              // Skip inactive products
+              if (productData.isActive === false) {
+                return null;
+              }
+
               // Fetch reviews for this product
               const reviewsRef = collection(db, "product_reviews");
               const q = query(reviewsRef, where("productId", "==", doc.id));
@@ -75,57 +81,29 @@ export default function Menu() {
               return {
                 id: doc.id,
                 category: cat,
-                name: productData.name || doc.id.replace(/-/g, " ").toUpperCase(), // Use 'name' from seed.js
+                name: productData.name || doc.id.replace(/-/g, " ").toUpperCase(),
                 ingredients: Array.isArray(productData.ingredients)
                   ? productData.ingredients.join(", ")
                   : "Ingredients not available",
                 price: productData.price || 0,
-                image: productData.imageUrl || DEFAULT_IMAGE_URL, // Use imageUrl or default
+                image: productData.imageUrl || DEFAULT_IMAGE_URL,
                 tags: productData.tags || [],
                 averageRating,
                 totalReviews: reviewCount,
-                stock: productData.stock || 0, // Add stock field
+                stock: productData.stock || 0,
+                isActive: productData.isActive !== false,
               };
             })
           );
-          itemsData = [...itemsData, ...categoryItems];
+          // Filter out null items (inactive products)
+          itemsData = [...itemsData, ...categoryItems.filter(item => item !== null)];
         }
 
         setItems(itemsData);
         setVisibleItems(6);
       } catch (error) {
-        console.error("Error fetching items or reviews:", {
-          message: error.message,
-          code: error.code,
-          stack: error.stack,
-        });
-        setItems([
-          {
-            id: "morning-glory-smoothie",
-            category: "smoothies",
-            name: "MORNING GLORY SMOOTHIE",
-            ingredients:
-              "Apple, Pineapple, Spinach, Shredded Coconut, Dates, Cinnamon Powder, Lemon Juice",
-            price: 500,
-            image: DEFAULT_IMAGE_URL, // Use default in fallback
-            tags: ["bestseller"],
-            averageRating: 4.0,
-            totalReviews: 50,
-            stock: 0, // Add stock field
-          },
-          {
-            id: "banana-date-shake",
-            category: "milkshakes",
-            name: "BANANA DATE SHAKE",
-            ingredients: "Banana, Dates, Milk",
-            price: 149,
-            image: DEFAULT_IMAGE_URL, // Update with actual URL if available
-            tags: ["new"],
-            averageRating: 4.5,
-            totalReviews: 30,
-            stock: 0, // Add stock field
-          },
-        ]);
+        console.error("Error fetching items or reviews:", error);
+        setItems([]);
       } finally {
         setLoading(false);
       }

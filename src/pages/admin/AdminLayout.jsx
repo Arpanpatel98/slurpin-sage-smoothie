@@ -2,6 +2,9 @@ import React from 'react';
 import { Link, useLocation, Routes, Route } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
 import OrderDetails from './OrderDetails';
+import AdminProducts from './AdminProducts';
+import EditProduct from './EditProduct';
+import AddProduct from './AddProduct';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -134,6 +137,9 @@ const AdminLayout = () => {
               <Route path="/" element={<AdminDashboard />} />
               <Route path="/orders" element={<AdminDashboard />} />
               <Route path="/orders/:orderId" element={<OrderDetails />} />
+              <Route path="/products" element={<AdminProducts />} />
+              <Route path="/products/add" element={<AddProduct />} />
+              <Route path="/products/edit/:category/:id" element={<EditProduct />} />
               {/* Add other routes as needed */}
             </Routes>
           </div>
