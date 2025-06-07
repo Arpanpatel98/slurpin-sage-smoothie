@@ -1,9 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, updateDoc, doc, getDoc, orderBy } from 'firebase/firestore';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { collection, query, where, onSnapshot, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import './AdminDashboard.css';
+
+// Debounce utility function
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 const AdminDashboard = () => {
   const auth = getAuth();
@@ -18,144 +31,194 @@ const AdminDashboard = () => {
   const [locationFilter, setLocationFilter] = useState('');
   const [usersData, setUsersData] = useState({});
 
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      console.log('=== AUTH CHECK START ===');
-      console.log('Current user:', currentUser);
-      setUser(currentUser);
-      
-      if (currentUser) {
+  // Memoized auth check
+  const checkAuthorization = useCallback(async (currentUser) => {
+    if (!currentUser) {
+      setIsAuthorized(false);
+      navigate('/');
+      return;
+    }
+
+    try {
+      const uid = currentUser.uid;
+      const userDocRef = doc(db, 'users', uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const userRole = String(userData.role).toLowerCase().trim();
+        setIsAuthorized(userRole === 'admin' || userRole === 'staff');
+      } else {
         try {
-          const uid = currentUser.uid;
-          console.log('Checking authorization for UID:', uid);
-          
-          // Check user's role in the user collection
-          const userDocRef = doc(db, 'users', uid);
-          console.log('Fetching user document from:', 'user/' + uid);
-          
-          const userDocSnap = await getDoc(userDocRef);
-          console.log('Document exists?', userDocSnap.exists());
-          
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            console.log('Full user document data:', userData);
-            console.log('User role:', userData.role);
-            
-            // Temporarily log all possible role values for debugging
-            console.log('Role check:', {
-              isAdmin: userData.role === 'admin',
-              isStaff: userData.role === 'staff',
-              actualRole: userData.role,
-              roleType: typeof userData.role
-            });
-            
-            // Check for role with more lenient comparison
-            const userRole = String(userData.role).toLowerCase().trim();
-            if (userRole === 'admin' || userRole === 'staff') {
-              console.log('Authorization successful!');
-              setIsAuthorized(true);
-            } else {
-              console.log('Authorization failed - invalid role:', userRole);
-              setIsAuthorized(false);
-              navigate('/');
-            }
-          } else {
-            console.log('No user document found in collection');
-            setIsAuthorized(false);
-            navigate('/');
-          }
-        } catch (error) {
-          console.error('Error during authorization:', error);
-          console.error('Error details:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
+          await setDoc(userDocRef, {
+            email: currentUser.email,
+            role: 'admin',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
           });
+          setIsAuthorized(true);
+        } catch (error) {
+          console.error('Error creating user document:', error);
           setIsAuthorized(false);
           navigate('/');
         }
-      } else {
-        console.log('No authenticated user found');
-        setIsAuthorized(false);
-        navigate('/');
       }
-      console.log('=== AUTH CHECK END ===');
-    });
+    } catch (error) {
+      console.error('Error during authorization:', error);
+      setIsAuthorized(false);
+      navigate('/');
+    }
+  }, [navigate]);
 
-    return () => unsubscribe();
-  }, [auth, navigate]);
+  // Debounced search handler
+  const debouncedSearch = useMemo(
+    () => debounce((value) => setSearchQuery(value), 300),
+    []
+  );
 
-  useEffect(() => {
-    console.log('Authorization state changed:', isAuthorized);
-  }, [isAuthorized]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const ordersRef = collection(db, 'orders');
-    const q = query(ordersRef, orderBy('timestamp', 'desc'));
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetchedOrders = snapshot.docs.map(doc => ({
+  // Memoized order processing
+  const processOrders = useCallback((snapshot) => {
+    const fetchedOrders = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
         id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(fetchedOrders);
-
-      // Optimize user fetching
-      const fetchUsers = async () => {
-        const usersMap = { ...usersData }; // Start with existing users
-        const userIdsToFetch = new Set();
-
-        // Collect unique user IDs that need to be fetched
-        fetchedOrders.forEach(order => {
-          if (order.userId && !usersMap[order.userId]) {
-            userIdsToFetch.add(order.userId);
-          }
-        });
-
-        // Only fetch users that aren't already in the map
-        if (userIdsToFetch.size > 0) {
-          try {
-            const userPromises = Array.from(userIdsToFetch).map(async (userId) => {
-              try {
-                const userDocRef = doc(db, 'users', userId);
-                const userDocSnap = await getDoc(userDocRef);
-                if (userDocSnap.exists()) {
-                  usersMap[userId] = userDocSnap.data();
-                } else {
-                  // Create a minimal user object for missing users
-                  usersMap[userId] = {
-                    displayName: 'Unknown User',
-                    email: 'N/A',
-                    phoneNumber: 'N/A'
-                  };
-                }
-              } catch (error) {
-                console.error('Error fetching user data for userId:', userId, error);
-                usersMap[userId] = {
-                  displayName: 'Error Loading User',
-                  email: 'N/A',
-                  phoneNumber: 'N/A'
-                };
-              }
-            });
-
-            await Promise.all(userPromises);
-            setUsersData(usersMap);
-          } catch (error) {
-            console.error('Error in batch user fetch:', error);
-          }
-        }
+        orderId: doc.id,
+        status: data.status?.order || 'pending',
+        timestamp: data.timestamps?.created || new Date().toISOString(),
+        total: data.orderSummary?.subtotal || 0,
+        items: data.items?.map((item) => ({
+          name: item.name,
+          size: item.customization?.size || 'regular',
+          milk: item.customization?.milk || 'none',
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+          addons: [
+            ...(item.customization?.boosters?.map((b) => b.name) || []),
+            ...(item.customization?.toppings?.map((t) => t.name) || []),
+          ].filter(Boolean),
+        })) || [],
+        customerName: data.userName || 'Anonymous',
+        customerEmail: data.userEmail || 'No email provided',
+        customerPhone: data.customerPhone || 'No phone provided',
+        userId: data.userId || null,
+        delivery: {
+          detailedAddress: data.delivery?.address?.detailedAddress || '',
+          floor: data.delivery?.address?.floor || '',
+          status: data.delivery?.status || 'pending',
+          estimatedDelivery: data.delivery?.estimatedDelivery || '',
+        },
+        paymentMethod: data.payment?.method || 'Not specified',
+        paymentStatus: data.payment?.status || 'pending',
       };
-
-      fetchUsers();
-    }, (error) => {
-      console.error('Error fetching orders:', error);
     });
+    return fetchedOrders;
+  }, []);
+
+  // Memoized user data fetching
+  const fetchUserData = useCallback(async (orderIds) => {
+    const usersMap = { ...usersData };
+    const uniqueUserIds = [...new Set(orderIds.filter(id => id && !usersMap[id]))];
+    
+    if (uniqueUserIds.length === 0) return;
+
+    const batchSize = 10;
+    for (let i = 0; i < uniqueUserIds.length; i += batchSize) {
+      const batch = uniqueUserIds.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (userId) => {
+          try {
+            const userDocRef = doc(db, 'users', userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              usersMap[userId] = userDocSnap.data();
+            }
+          } catch (error) {
+            console.error('Error fetching user data for userId:', userId, error);
+          }
+        })
+      );
+    }
+    setUsersData(usersMap);
+  }, [usersData]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, checkAuthorization);
+    return () => unsubscribe();
+  }, [auth, checkAuthorization]);
+
+  useEffect(() => {
+    if (!user) {
+      setOrders([]);
+      return;
+    }
+
+    const q = query(collection(db, 'orders'));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedOrders = processOrders(snapshot);
+        setOrders(fetchedOrders);
+        
+        // Fetch user data in batches
+        const userIds = fetchedOrders.map(order => order.userId).filter(Boolean);
+        fetchUserData(userIds);
+      },
+      (error) => {
+        console.error('Error fetching orders:', error);
+      }
+    );
 
     return () => unsubscribe();
-  }, [user]); // Remove usersData from dependencies to prevent unnecessary re-renders
+  }, [user, processOrders, fetchUserData]);
+
+  // Memoized filtered orders
+  const filteredOrders = useMemo(() => {
+    return orders
+      .filter((order) => {
+        if (statusFilter !== 'all' && order.status.toLowerCase() !== statusFilter.toLowerCase()) {
+          return false;
+        }
+
+        if (searchQuery && !order.id.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            !order.customerName.toLowerCase().includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+
+        if (dateFilter !== 'all' && dateFilter !== 'custom') {
+          const orderDate = new Date(order.timestamp);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          const thisWeek = new Date(today);
+          thisWeek.setDate(today.getDate() - today.getDay());
+          const lastWeek = new Date(thisWeek);
+          lastWeek.setDate(thisWeek.getDate() - 7);
+          const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+          if (dateFilter === 'today' && orderDate < today) return false;
+          if (dateFilter === 'yesterday' && (orderDate < yesterday || orderDate >= today)) return false;
+          if (dateFilter === 'this_week' && orderDate < thisWeek) return false;
+          if (dateFilter === 'last_week' && (orderDate < lastWeek || orderDate >= thisWeek)) return false;
+          if (dateFilter === 'this_month' && orderDate < thisMonth) return false;
+        }
+
+        if (locationFilter && order.delivery.detailedAddress.toLowerCase() !== locationFilter.toLowerCase()) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }, [orders, statusFilter, searchQuery, dateFilter, locationFilter]);
+
+  // Memoized stats
+  const stats = useMemo(() => ({
+    total: orders.length,
+    pending: orders.filter(o => o.status === 'pending').length,
+    processing: orders.filter(o => o.status === 'processing').length,
+    completed: orders.filter(o => o.status === 'delivered').length,
+  }), [orders]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -178,55 +241,6 @@ const AdminDashboard = () => {
 
   const handleOrderClick = (orderId) => {
     navigate(`/admin/orders/${orderId}`);
-  };
-
-  const filteredOrders = orders
-    .filter((order) => {
-      // Status Filter
-      if (statusFilter !== 'all' && order.status.toLowerCase() !== statusFilter.toLowerCase()) {
-        return false;
-      }
-
-      // Search Query Filter
-      if (searchQuery && !order.id.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !order.customerName.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-
-      // Date Filter
-      if (dateFilter !== 'all' && dateFilter !== 'custom') {
-        const orderDate = new Date(order.timestamp);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const thisWeek = new Date(today);
-        thisWeek.setDate(today.getDate() - today.getDay());
-        const lastWeek = new Date(thisWeek);
-        lastWeek.setDate(thisWeek.getDate() - 7);
-        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        if (dateFilter === 'today' && orderDate < today) return false;
-        if (dateFilter === 'yesterday' && (orderDate < yesterday || orderDate >= today)) return false;
-        if (dateFilter === 'this_week' && orderDate < thisWeek) return false;
-        if (dateFilter === 'last_week' && (orderDate < lastWeek || orderDate >= thisWeek)) return false;
-        if (dateFilter === 'this_month' && orderDate < thisMonth) return false;
-      }
-
-      // Location Filter
-      if (locationFilter && order.delivery.detailedAddress.toLowerCase() !== locationFilter.toLowerCase()) {
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    processing: orders.filter(o => o.status === 'processing').length,
-    completed: orders.filter(o => o.status === 'delivered').length,
   };
 
   const handleExportOrders = () => {
@@ -289,7 +303,7 @@ const AdminDashboard = () => {
                   placeholder="Search orders, customers..."
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => debouncedSearch(e.target.value)}
                 />
               </div>
             </div>
