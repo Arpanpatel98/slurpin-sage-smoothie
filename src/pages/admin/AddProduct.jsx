@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, setDoc, doc } from 'firebase/firestore';
+import { collection, setDoc, doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../../firebase';
 import './EditProduct.css';
@@ -10,9 +10,11 @@ const AddProduct = () => {
     const [error, setError] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        category: 'smoothies', // Default category
+        category: 'smoothies',
         price: '',
         stock: 0,
         description: '',
@@ -24,6 +26,13 @@ const AddProduct = () => {
         keyInsights: [],
         isActive: true
     });
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            setIsAuthenticated(!!user);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -45,7 +54,11 @@ const AddProduct = () => {
     const addArrayItem = (field) => {
         setFormData(prev => ({
             ...prev,
-            [field]: [...prev[field], '']
+            [field]: field === 'nutritionFacts' 
+                ? [...prev[field], { nutrient: '', value: '', unit: '', percent: '', daily: '' }]
+                : field === 'keyInsights'
+                ? [...prev[field], { title: '', description: '' }]
+                : [...prev[field], '']
         }));
     };
 
@@ -75,7 +88,6 @@ const AddProduct = () => {
     };
 
     const transformNutritionFactsToBreakdown = (nutritionFacts) => {
-        // First transform nutritionFacts to use 'name' instead of 'nutrient'
         const transformedNutritionFacts = nutritionFacts.map(fact => ({
             name: fact.nutrient,
             value: fact.value,
@@ -84,7 +96,6 @@ const AddProduct = () => {
             daily: fact.daily
         }));
 
-        // Then create detailedBreakdown with 'nutrient' field
         const detailedBreakdown = nutritionFacts.map(fact => ({
             nutrient: fact.nutrient,
             amount: `${fact.value} ${fact.unit}`,
@@ -92,46 +103,26 @@ const AddProduct = () => {
             percent: `${fact.percent}%`
         }));
 
-        return {
-            nutritionFacts: transformedNutritionFacts,
-            detailedBreakdown
-        };
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            // Transform nutrition facts to both formats
-            const { nutritionFacts, detailedBreakdown } = transformNutritionFactsToBreakdown(formData.nutritionFacts);
-            
-            // Create the final data object with both formats
-            const productData = {
-                ...formData,
-                nutritionFacts,
-                detailedBreakdown
-            };
-
-            // Create a document ID from the product name (lowercase, replace spaces with hyphens)
-            const docId = formData.name.toLowerCase().replace(/\s+/g, '-');
-            
-            // Use setDoc instead of addDoc to specify the document ID
-            await setDoc(doc(db, `products/config/${formData.category}`, docId), productData);
-            navigate('/admin/products');
-        } catch (err) {
-            setError('Error adding product: ' + err.message);
-        }
+        return { nutritionFacts: transformedNutritionFacts, detailedBreakdown };
     };
 
     const handleFileSelect = (e) => {
         const file = e.target.files[0];
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                setError('Please select an image file');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                setError('File size should be less than 5MB');
+                return;
+            }
             setSelectedFile(file);
-            // Update file label
+            setError(null);
             const fileLabel = document.getElementById('fileLabel');
             if (fileLabel) {
                 fileLabel.textContent = file.name;
             }
-            // Create preview URL
             const previewUrl = URL.createObjectURL(file);
             setFormData(prev => ({
                 ...prev,
@@ -143,55 +134,76 @@ const AddProduct = () => {
     const handleFileUpload = async () => {
         if (!selectedFile) {
             setError('Please select a file first');
-            return;
+            return null;
         }
 
-        if (!auth.currentUser) {
+        if (!isAuthenticated) {
             setError('You must be logged in to upload images');
-            return;
+            return null;
         }
 
         setUploading(true);
         setError(null);
         
         try {
-            // Create a unique filename
             const timestamp = Date.now();
-            const filename = `${formData.category}/${timestamp}_${selectedFile.name}`;
+            const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            const filename = `${formData.category}/${timestamp}_${sanitizedFileName}`;
+            
             const storageRef = ref(storage, `products/${filename}`);
 
-            // Upload file with metadata
             const metadata = {
                 contentType: selectedFile.type,
                 customMetadata: {
                     uploadedBy: auth.currentUser.uid,
-                    category: formData.category
+                    category: formData.category,
+                    timestamp: timestamp.toString()
                 }
             };
 
-            // Upload file
             const snapshot = await uploadBytes(storageRef, selectedFile, metadata);
-            
-            // Get download URL
             const downloadUrl = await getDownloadURL(snapshot.ref);
             
-            // Update form data with the new URL
-            setFormData(prev => ({
-                ...prev,
-                imageUrl: downloadUrl
-            }));
-
-            // Clear selected file
             setSelectedFile(null);
             const fileLabel = document.getElementById('fileLabel');
             if (fileLabel) {
                 fileLabel.textContent = 'Choose file...';
             }
+            return downloadUrl;
         } catch (err) {
             console.error('Upload error:', err);
             setError('Error uploading image: ' + (err.message || 'Unknown error occurred'));
+            return null;
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            let finalImageUrl = formData.imageUrl;
+            if (selectedFile) {
+                const uploadedUrl = await handleFileUpload();
+                if (!uploadedUrl) {
+                    return; // Stop if image upload fails
+                }
+                finalImageUrl = uploadedUrl;
+            }
+
+            const { nutritionFacts, detailedBreakdown } = transformNutritionFactsToBreakdown(formData.nutritionFacts);
+            const productData = {
+                ...formData,
+                imageUrl: finalImageUrl,
+                nutritionFacts,
+                detailedBreakdown
+            };
+
+            const docId = formData.name.toLowerCase().replace(/\s+/g, '-');
+            await setDoc(doc(db, `products/config/${formData.category}`, docId), productData);
+            navigate('/admin/products');
+        } catch (err) {
+            setError('Error adding product: ' + err.message);
         }
     };
 
@@ -202,15 +214,17 @@ const AddProduct = () => {
                 <div>
                     <button 
                         onClick={handleSubmit}
-                        className="px-6 py-2 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                        disabled={uploading}
+                        className={`px-6 py-2 rounded-md shadow-sm text-white ${uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2`}
                     >
-                        Add Product
+                        {uploading ? 'Processing...' : 'Add Product'}
                     </button>
                 </div>
             </div>
 
+            {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
             <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Basic Information */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -268,7 +282,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Description */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Description</h3>
                     <div>
@@ -286,7 +299,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Product Image */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Product Image</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -333,7 +345,6 @@ const AddProduct = () => {
                                         {uploading ? 'Uploading...' : 'Upload'}
                                     </button>
                                 </div>
-                                {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
                             </div>
                         </div>
                         <div>
@@ -349,7 +360,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Ingredients */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Ingredients</h3>
                     <div className="space-y-4">
@@ -387,7 +397,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Health Benefits */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Health Benefits</h3>
                     <div className="space-y-4">
@@ -426,7 +435,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Nutrition Facts */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Nutrition Facts</h3>
                     <div className="overflow-x-auto">
@@ -564,7 +572,6 @@ const AddProduct = () => {
                     </div>
                 </div>
 
-                {/* Key Insights */}
                 <div className="form-section p-6 rounded-lg shadow-md">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Key Insights</h3>
                     <div className="space-y-4">
@@ -627,13 +634,14 @@ const AddProduct = () => {
                 </button>
                 <button
                     onClick={handleSubmit}
-                    className="px-6 py-2 bg-emerald-600 text-white rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                    disabled={uploading}
+                    className={`px-6 py-2 rounded-md shadow-sm text-white ${uploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2`}
                 >
-                    Add Product
+                    {uploading ? 'Processing...' : 'Add Product'}
                 </button>
             </div>
         </main>
     );
 };
 
-export default AddProduct; 
+export default AddProduct;
