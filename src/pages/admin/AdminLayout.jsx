@@ -1,5 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, Routes, Route } from 'react-router-dom';
+import { getToken } from 'firebase/messaging';
+import { messaging } from '../../firebase';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { getAuth } from 'firebase/auth';
 import AdminDashboard from './AdminDashboard';
 import OrderDetails from './OrderDetails';
 import AdminProducts from './AdminProducts';
@@ -8,6 +13,98 @@ import AddProduct from './AddProduct';
 
 const AdminLayout = () => {
   const location = useLocation();
+  const auth = getAuth();
+
+  // Test Firestore access
+  const testFirestoreAccess = async () => {
+    try {
+      const testRef = doc(db, 'test', 'test');
+      await setDoc(testRef, { test: true });
+      console.log('Firestore write test successful');
+      return true;
+    } catch (error) {
+      console.error('Firestore write test failed:', error);
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const fetchAndStoreFCMToken = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        console.log('Current user:', currentUser);
+
+        if (!currentUser) {
+          console.log('No user logged in');
+          return;
+        }
+
+        // Check if VAPID key exists
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        console.log('VAPID Key exists:', !!vapidKey);
+
+        const newToken = await getToken(messaging, {
+          vapidKey: vapidKey
+        });
+        console.log('New FCM Token received:', newToken);
+
+        // Check existing token
+        const userTokenRef = doc(db, 'fcmTokens', currentUser.uid);
+        const tokenDoc = await getDoc(userTokenRef);
+
+        if (tokenDoc.exists()) {
+          const existingToken = tokenDoc.data().token;
+          console.log('Existing token found:', existingToken);
+
+          // Only update if tokens are different
+          if (existingToken !== newToken) {
+            console.log('Token has changed, updating...');
+            await setDoc(userTokenRef, {
+              token: newToken,
+              userId: currentUser.uid,
+              email: currentUser.email,
+              updatedAt: new Date().toISOString()
+            }, { merge: true });
+            console.log('FCM token updated successfully');
+          } else {
+            console.log('Token unchanged, no update needed');
+          }
+        } else {
+          // No existing token, create new one
+          console.log('No existing token found, creating new one...');
+          await setDoc(userTokenRef, {
+            token: newToken,
+            userId: currentUser.uid,
+            email: currentUser.email,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+          console.log('New FCM token stored successfully');
+        }
+
+      } catch (error) {
+        console.error('Error in fetchAndStoreFCMToken:', error);
+        if (error.code) {
+          console.error('Error code:', error.code);
+        }
+        if (error.message) {
+          console.error('Error message:', error.message);
+        }
+      }
+    };
+
+    // Add auth state listener to ensure we have a user
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log('Auth state changed - user is logged in');
+        fetchAndStoreFCMToken();
+      } else {
+        console.log('Auth state changed - no user logged in');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   const isActive = (path) => {
     return location.pathname === path;

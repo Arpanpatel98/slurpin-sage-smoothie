@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getMessaging } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,6 +22,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const messaging = getMessaging(app);
 
 // Export the Firebase services
 export const fetchProductData = async (category, productId) => {
@@ -38,5 +40,5 @@ export const fetchProductData = async (category, productId) => {
   }
 };
 
-export { auth, db, storage };
+export { auth, db, storage, messaging };
 export default app;

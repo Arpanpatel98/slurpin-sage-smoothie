@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, getDoc, orderBy } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
@@ -90,82 +90,72 @@ const AdminDashboard = () => {
   }, [isAuthorized]);
 
   useEffect(() => {
-    if (!user) {
-      setOrders([]);
-      return;
-    }
+    if (!user) return;
 
-    const q = query(collection(db, 'orders'));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetchedOrders = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            orderId: doc.id,
-            status: data.status?.order || 'pending',
-            timestamp: data.timestamps?.created || new Date().toISOString(),
-            total: data.orderSummary?.subtotal || 0,
-            items: data.items?.map((item) => ({
-              name: item.name,
-              size: item.customization?.size || 'regular',
-              milk: item.customization?.milk || 'none',
-              price: item.price || 0,
-              quantity: item.quantity || 1,
-              addons: [
-                ...(item.customization?.boosters?.map((b) => b.name) || []),
-                ...(item.customization?.toppings?.map((t) => t.name) || []),
-              ].filter(Boolean),
-            })) || [],
-            customerName: data.userName || 'Anonymous',
-            customerEmail: data.userEmail || 'No email provided',
-            customerPhone: data.customerPhone || 'No phone provided',
-            userId: data.userId || null,
-            delivery: {
-              detailedAddress: data.delivery?.address?.detailedAddress || '',
-              floor: data.delivery?.address?.floor || '',
-              status: data.delivery?.status || 'pending',
-              estimatedDelivery: data.delivery?.estimatedDelivery || '',
-            },
-            paymentMethod: data.payment?.method || 'Not specified',
-            paymentStatus: data.payment?.status || 'pending',
-          };
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, orderBy('timestamp', 'desc'));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const fetchedOrders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setOrders(fetchedOrders);
+
+      // Optimize user fetching
+      const fetchUsers = async () => {
+        const usersMap = { ...usersData }; // Start with existing users
+        const userIdsToFetch = new Set();
+
+        // Collect unique user IDs that need to be fetched
+        fetchedOrders.forEach(order => {
+          if (order.userId && !usersMap[order.userId]) {
+            userIdsToFetch.add(order.userId);
+          }
         });
-        setOrders(fetchedOrders);
 
-        // Fetch user data for orders with userId
-        const fetchUsers = async () => {
-          const usersMap = { ...usersData };
-          for (const order of fetchedOrders) {
-            if (order.userId && !usersMap[order.userId]) {
+        // Only fetch users that aren't already in the map
+        if (userIdsToFetch.size > 0) {
+          try {
+            const userPromises = Array.from(userIdsToFetch).map(async (userId) => {
               try {
-                const userDocRef = doc(db, 'users', order.userId);
+                const userDocRef = doc(db, 'users', userId);
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
-                  usersMap[order.userId] = userDocSnap.data();
+                  usersMap[userId] = userDocSnap.data();
                 } else {
-                  console.log('User not found for userId:', order.userId);
-                  usersMap[order.userId] = {};
+                  // Create a minimal user object for missing users
+                  usersMap[userId] = {
+                    displayName: 'Unknown User',
+                    email: 'N/A',
+                    phoneNumber: 'N/A'
+                  };
                 }
               } catch (error) {
-                console.error('Error fetching user data for userId:', order.userId, error);
-                usersMap[order.userId] = {};
+                console.error('Error fetching user data for userId:', userId, error);
+                usersMap[userId] = {
+                  displayName: 'Error Loading User',
+                  email: 'N/A',
+                  phoneNumber: 'N/A'
+                };
               }
-            }
-          }
-          setUsersData(usersMap);
-        };
+            });
 
-        fetchUsers();
-      },
-      (error) => {
-        console.error('Error fetching orders:', error);
-      }
-    );
+            await Promise.all(userPromises);
+            setUsersData(usersMap);
+          } catch (error) {
+            console.error('Error in batch user fetch:', error);
+          }
+        }
+      };
+
+      fetchUsers();
+    }, (error) => {
+      console.error('Error fetching orders:', error);
+    });
 
     return () => unsubscribe();
-  }, [user, usersData]);
+  }, [user]); // Remove usersData from dependencies to prevent unnecessary re-renders
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
