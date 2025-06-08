@@ -43,7 +43,8 @@ const ProductCustomizationModal = () => {
   const currentProduct = {
     ...defaultProduct,
     ...product,
-    image: product?.image || DEFAULT_IMAGE_URL, // Ensure image is always a Firebase URL
+    image: product?.image || DEFAULT_IMAGE_URL,
+    price: Number(product?.price || defaultProduct.price),
   };
 
   // Initialize state with product data when in edit mode
@@ -62,9 +63,9 @@ const ProductCustomizationModal = () => {
     if (isEditMode) {
       const prevToppingsPrice = (product.toppings || []).reduce((sum, t) => sum + (t.price || 0), 0);
       const prevBoostersPrice = (product.boosters || []).reduce((sum, b) => sum + (b.price || 0), 0);
-      return (product.price / product.quantity) - prevToppingsPrice - prevBoostersPrice;
+      return (Number(product.price) / product.quantity) - prevToppingsPrice - prevBoostersPrice;
     }
-    return currentProduct.price;
+    return Number(currentProduct.price);
   }, [isEditMode, product, currentProduct.price]);
 
   // Fetch customizations
@@ -537,7 +538,7 @@ const ProductCustomizationModal = () => {
           <h4 className="section_title_productcustomizationmodal">Order Summary</h4>
           <div className="summary_item_productcustomizationmodal">
             <span className="summary_label_productcustomizationmodal">{currentProduct.name}</span>
-            <span className="summary_price_productcustomizationmodal">₹{basePrice.toFixed(2)}</span>
+            <span className="summary_price_productcustomizationmodal">₹{Number(currentProduct.price).toFixed(2)}</span>
           </div>
           {selectedToppings.length > 0 && (
             <div className="summary_item_productcustomizationmodal">

@@ -4,7 +4,7 @@ import ProductHero from '../components/Item_Detail/ProductHero';
 import Ingredients from '../components/Item_Detail/Ingredients';
 import Nutrition from '../components/Item_Detail/Nutrition';
 import NutrientComparison from '../components/Item_Detail/NutrientComparison';
-import RecommendedProducts from '../components/Item_Detail/RecommendedProducts';
+// import RecommendedProducts from '../components/Item_Detail/RecommendedProducts';
 import CustomerReviews from '../components/Item_Detail/CustomerReviews';
 // import './styles.css';
 import '../components/Item_Detail/item_de_copy.css';
@@ -33,7 +33,7 @@ const ProductPage = () => {
       <Ingredients category={category} productId={productId} />
       <Nutrition category={category} productId={productId} />
       <NutrientComparison category={category} productId={productId} />
-      <RecommendedProducts category={category} productId={productId} />
+      {/* <RecommendedProducts category={category} productId={productId} /> */}
       <CustomerReviews category={category} productId={productId} />
     </div>
   );

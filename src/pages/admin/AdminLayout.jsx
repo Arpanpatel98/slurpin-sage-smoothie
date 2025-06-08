@@ -143,7 +143,7 @@ const AdminLayout = () => {
                   </svg>
                   Orders
                 </Link>
-                <Link
+                {/* <Link
                   to="/admin/customers"
                   className={`sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     isActive('/admin/customers') ? 'bg-brand-100 text-brand-700' : 'text-gray-600 hover:bg-gray-50'
@@ -153,7 +153,7 @@ const AdminLayout = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                   </svg>
                   Customers
-                </Link>
+                </Link> */}
                 <Link
                   to="/admin/products"
                   className={`sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
@@ -165,7 +165,7 @@ const AdminLayout = () => {
                   </svg>
                   Products
                 </Link>
-                <Link
+                {/* <Link
                   to="/admin/analytics"
                   className={`sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
                     isActive('/admin/analytics') ? 'bg-brand-100 text-brand-700' : 'text-gray-600 hover:bg-gray-50'
@@ -175,10 +175,10 @@ const AdminLayout = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                   </svg>
                   Analytics
-                </Link>
+                </Link> */}
               </nav>
               
-              <div className="px-4 mt-6 mb-2">
+              {/* <div className="px-4 mt-6 mb-2">
                 <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Settings</h2>
               </div>
               <nav className="flex-1 px-2 space-y-1">
@@ -205,10 +205,10 @@ const AdminLayout = () => {
                   </svg>
                   Help
                 </Link>
-              </nav>
+              </nav> */}
             </div>
           </div>
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          {/* <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
             <div className="flex-shrink-0 w-full group block">
               <div className="flex items-center">
                 <div>
@@ -222,7 +222,7 @@ const AdminLayout = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 

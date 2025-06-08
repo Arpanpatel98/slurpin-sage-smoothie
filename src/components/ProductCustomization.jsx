@@ -41,7 +41,8 @@ const ProductCustomization = ({ product, onClose }) => {
   const currentProduct = {
     ...defaultProduct,
     ...product,
-    image: product?.image || DEFAULT_IMAGE_URL, // Ensure image is always a Firebase URL
+    image: product?.image || DEFAULT_IMAGE_URL,
+    price: Number(product?.price || defaultProduct.price), // Explicitly convert to number
   };
 
   useEffect(() => {
@@ -167,10 +168,10 @@ const ProductCustomization = ({ product, onClose }) => {
     }
 
     // Calculate total price
-    let totalPrice = currentProduct.price;
-    selectedToppings.forEach((topping) => (totalPrice += topping.price));
-    selectedBoosters.forEach((booster) => (totalPrice += booster.price));
-    totalPrice *= quantity;
+    const basePrice = Number(currentProduct.price);
+    const toppingsPrice = selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0);
+    const boostersPrice = selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0);
+    const totalPrice = (basePrice + toppingsPrice + boostersPrice) * quantity;
 
     const customizedProduct = {
       productId: currentProduct.id,
@@ -183,7 +184,7 @@ const ProductCustomization = ({ product, onClose }) => {
       boosters: selectedBoosters,
       specialInstructions,
       customized: true,
-      image: currentProduct.image, // Include image for cart
+      image: currentProduct.image,
       timestamp: serverTimestamp(),
     };
 
@@ -222,10 +223,10 @@ const ProductCustomization = ({ product, onClose }) => {
   };
 
   const calculateTotalPrice = () => {
-    let basePrice = currentProduct.price;
-    let boostersPrice = selectedBoosters.reduce((total, booster) => total + booster.price, 0);
-    let toppingsPrice = selectedToppings.reduce((total, topping) => total + topping.price, 0);
-    return (basePrice + boostersPrice + toppingsPrice) * quantity;
+    const basePrice = Number(currentProduct.price);
+    const toppingsPrice = selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0);
+    const boostersPrice = selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0);
+    return (basePrice + toppingsPrice + boostersPrice) * quantity;
   };
 
   if (loading) {
@@ -383,7 +384,7 @@ const ProductCustomization = ({ product, onClose }) => {
             <div className="summary-item">
               <span className="summary-label">Nutritional Boosters</span>
               <span className="summary-price">
-                ₹{selectedBoosters.reduce((total, booster) => total + booster.price, 0)}
+                ₹{selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0)}
               </span>
             </div>
           )}
@@ -392,7 +393,7 @@ const ProductCustomization = ({ product, onClose }) => {
             <div className="summary-item">
               <span className="summary-label">Toppings</span>
               <span className="summary-price">
-                ₹{selectedToppings.reduce((total, topping) => total + topping.price, 0)}
+                ₹{selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0)}
               </span>
             </div>
           )}

@@ -93,7 +93,7 @@ export const CartProvider = ({ children }) => {
             const updatedItem = {
               ...item,
               quantity: currentStock,
-              price: (item.price / item.quantity) * currentStock
+              price: Number(item.price / item.quantity) * currentStock // Ensure price is a number
             };
             updatedCartItems.push(updatedItem);
             newOutOfStockItems.push({
@@ -146,6 +146,9 @@ export const CartProvider = ({ children }) => {
 
     try {
       setIsLoading(true);
+      // Ensure item.price is a number
+      item.price = Number(item.price);
+
       // Validate image field
       if (!item.image) {
         console.warn(`Adding item ${item.productId} without image, using default`);
@@ -194,7 +197,7 @@ export const CartProvider = ({ children }) => {
         }
 
         // Update existing item
-        const newPrice = (item.price / item.quantity) * newQuantity;
+        const newPrice = (Number(item.price) / item.quantity) * newQuantity; // Ensure item.price is a number
         const updatedItem = {
           ...itemWithStock,
           quantity: newQuantity,
