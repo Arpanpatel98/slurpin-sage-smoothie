@@ -8,6 +8,7 @@ import ProductCustomization from './ProductCustomizationModal';
 import DeliveryForm from '../DeliveryForm';
 import { collection, query, where, getDocs, deleteDoc, doc, addDoc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
+import { sendOrderEmailNotification } from '../../services/emailService';
 
 const recommendedProducts = [
   {
@@ -248,6 +249,14 @@ const Cart = () => {
                 doc(db, 'users', orderData.userId, 'orders', orderId),
                 orderData
               );
+
+              // Send email notification to admin
+              try {
+                await sendOrderEmailNotification(orderData);
+              } catch (error) {
+                console.error('Error sending email notification:', error);
+                // Don't block the order process if email fails
+              }
 
               // Clear the cart
               clearCart();
