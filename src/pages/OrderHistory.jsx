@@ -4,7 +4,10 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '../firebase';
 import './OrderHistory.css';
+import InvoiceTemplate from '../components/InvoiceTemplate';
+import '../components/InvoiceTemplate.css';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const OrderHistory = () => {
   const location = useLocation();
@@ -17,6 +20,7 @@ const OrderHistory = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const itemsPerPage = 10;
 
   const DEFAULT_IMAGE_URL =
@@ -155,129 +159,215 @@ const OrderHistory = () => {
 
   const downloadReceipt = async (order) => {
     try {
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.width;
-      const margin = 20;
-      let yPos = 20;
+      // Dynamically import the required libraries
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf')
+      ]);
 
-      // Header
-      doc.setFontSize(24);
-      doc.text('SlurpinSage', pageWidth / 2, yPos, { align: 'center' });
-      yPos += 10;
-      doc.setFontSize(12);
-      doc.text('Smoothie & Juice Bar', pageWidth / 2, yPos, { align: 'center' });
-      
-      // Receipt Title
-      yPos += 20;
-      doc.setFontSize(18);
-      doc.text('ORDER RECEIPT', pageWidth / 2, yPos, { align: 'center' });
-      
-      // Order Details
-      yPos += 20;
-      doc.setFontSize(12);
-      doc.text(`Order #${order.orderId}`, margin, yPos);
-      yPos += 10;
-      doc.text(`Date: ${new Date(order.timestamp).toLocaleString()}`, margin, yPos);
-      yPos += 10;
-      doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, margin, yPos);
-      
-      // Items Section
-      yPos += 20;
-      doc.setFontSize(14);
-      doc.text('ITEMS', margin, yPos);
-      yPos += 10;
-      
-      // Draw table header
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 10;
-      
-      // Items
-      order.items.forEach((item, index) => {
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        doc.setFontSize(12);
-        doc.text(`${item.name} (${item.size})`, margin, yPos);
-        doc.text(`₹${item.price} x ${item.quantity}`, pageWidth - margin - 60, yPos);
-        doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, pageWidth - margin - 5, yPos, { align: 'right' });
-        
-        if (item.addons && item.addons.length > 0) {
-          yPos += 7;
-          doc.setFontSize(10);
-          doc.text(`Add-ons: ${item.addons.join(', ')}`, margin + 5, yPos);
-        }
-        
-        yPos += 15;
+      // Create a temporary div to render the invoice
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '0';
+      tempDiv.style.top = '0';
+      tempDiv.style.width = '800px';
+      tempDiv.style.padding = '0px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.zIndex = '9999';
+      document.body.appendChild(tempDiv);
+
+      // Render the invoice content
+      tempDiv.innerHTML = `
+        <div class="invoice-container rounded-lg overflow-hidden" style="width: 800px; background: white; position: relative; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+          <!-- Background Pattern -->
+          <div class="leaf-pattern" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.03;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 800 800">
+              <pattern id="leaf-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                <path d="M50,0 C60,20 80,20 100,10 C80,40 80,60 100,90 C80,80 60,80 50,100 C40,80 20,80 0,90 C20,60 20,40 0,10 C20,20 40,20 50,0" fill="#1a4d2e"></path>
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#leaf-pattern)"></rect>
+            </svg>
+          </div>
+
+          <div class="content-wrapper" style="padding: 20px; position: relative; z-index: 1;">
+            <!-- Invoice Header -->
+            <div class="invoice-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb;">
+              <div style="display: flex; align-items: center;">
+                <div style="margin-right: 16px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#1a4d2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                  </svg>
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: bold; color: #1a4d2e; margin-bottom: 4px;">SlurpinSage</div>
+                  <div style="font-size: 14px; opacity: 0.8;">Nourish Your Journey</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 24px; font-weight: bold;">INVOICE</div>
+                <div style="font-size: 14px; opacity: 0.8;">#${order.orderId}</div>
+              </div>
+            </div>
+
+            <!-- Invoice Body -->
+            <div class="invoice-body">
+              <!-- Business & Customer Info -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
+                <div>
+                  <h3 style="font-size: 18px; font-weight: bold; color: #1a4d2e; margin-bottom: 10px;">Our Information</h3>
+                  <p style="font-weight: 500;">SlurpinSage Health Beverages</p>
+                  <p>123 Green Avenue</p>
+                  <p>Wellness District, CA 90210</p>
+                  <p>Phone: (555) 123-4567</p>
+                  <p>Email: orders@slurpinsage.com</p>
+                </div>
+                <div>
+                  <h3 style="font-size: 18px; font-weight: bold; color: #1a4d2e; margin-bottom: 10px;">Order Information</h3>
+                  <p style="font-weight: 500;">Order #${order.orderId}</p>
+                  <p>${new Date(order.timestamp).toLocaleString()}</p>
+                  <p>${order.orderDetails?.location || 'Unknown Location'}</p>
+                  <p>${order.orderDetails?.address || 'No address provided'}</p>
+                </div>
+              </div>
+
+              <!-- Order Items -->
+              <div style="margin-bottom: 32px;">
+                <h3 style="font-size: 18px; font-weight: bold; color: #1a4d2e; margin-bottom: 10px;">Order Items</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                  <thead>
+                    <tr style="background-color: #f8f9fa;">
+                      <th style="padding: 8px 16px; text-align: left; font-weight: 600;">Item</th>
+                      <th style="padding: 8px 16px; text-align: left; font-weight: 600;">Details</th>
+                      <th style="padding: 8px 16px; text-align: right; font-weight: 600;">Qty</th>
+                      <th style="padding: 8px 16px; text-align: right; font-weight: 600;">Price</th>
+                      <th style="padding: 8px 16px; text-align: right; font-weight: 600;">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${order.items?.map(item => `
+                      <tr style="border-bottom: 1px solid #dee2e6;">
+                        <td style="padding: 12px 16px;">
+                          <div style="font-weight: 500;">${item.name}</div>
+                          <div style="font-size: 12px; color: #6b7280;">${item.size}</div>
+                        </td>
+                        <td style="padding: 12px 16px;">
+                          <div style="font-size: 12px; color: #4b5563;">${item.milk}</div>
+                          ${item.addons && item.addons.length > 0 ? `
+                            <div style="margin-top: 4px;">
+                              ${item.addons.map(addon => `
+                                <span style="display: inline-block; padding: 2px 8px; margin-right: 5px; border-radius: 12px; font-size: 10px; color: white; background-color: #28a745;">${addon}</span>
+                              `).join('')}
+                            </div>
+                          ` : ''}
+                        </td>
+                        <td style="padding: 12px 16px; text-align: right;">${item.quantity}</td>
+                        <td style="padding: 12px 16px; text-align: right;">₹${item.price}</td>
+                        <td style="padding: 12px 16px; text-align: right; font-weight: 500;">₹${(item.price * item.quantity).toFixed(2)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+
+                <!-- Order Totals -->
+                <div style="display: flex; justify-content: flex-end;">
+                  <div style="width: 256px;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                      <div style="color: #4b5563;">Subtotal:</div>
+                      <div style="font-weight: 500;">₹${order.total?.toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                      <div style="color: #4b5563;">Add-ins:</div>
+                      <div style="font-weight: 500;">₹${order.addInsTotal?.toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                      <div style="color: #4b5563;">Tax:</div>
+                      <div style="font-weight: 500;">₹${order.tax?.toFixed(2)}</div>
+                    </div>
+                    ${order.discount > 0 ? `
+                      <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                        <div style="color: #4b5563;">Loyalty Discount:</div>
+                        <div style="font-weight: 500; color: #28a745;">-₹${order.discount?.toFixed(2)}</div>
+                      </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #d1d5db; margin-top: 8px;">
+                      <div style="font-size: 18px; font-weight: bold;">Total:</div>
+                      <div style="font-size: 18px; font-weight: bold;">
+                        ₹${((order.total + order.addInsTotal + order.tax - (order.discount || 0)).toFixed(2))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 24px;">
+                <p style="font-weight: 500; color: #1a4d2e;">Thank you for choosing SlurpinSage!</p>
+                <p style="font-size: 14px; color: #4b5563;">Your health journey is our priority.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Wait for content to be rendered
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Generate PDF
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        windowWidth: 800,
+        windowHeight: tempDiv.offsetHeight
       });
-      
-      // Summary Section
-      yPos += 10;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(14);
-      doc.text('SUMMARY', margin, yPos);
-      yPos += 15;
-      
-      // Summary Items
-      const summaryItems = [
-        { label: 'Subtotal', value: order.total?.toFixed(2) },
-        { label: 'Add-ins', value: order.addInsTotal?.toFixed(2) },
-        { label: 'Tax', value: order.tax?.toFixed(2) }
-      ];
-      
-      if (order.discount > 0) {
-        summaryItems.push({ label: 'Loyalty Discount', value: `-${order.discount?.toFixed(2)}` });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 190; // A4 width (210mm) minus 10mm margins
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 10;
+
+      // Add the invoice image
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - 20;
+
+      // Handle multi-page content
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
       
-      summaryItems.forEach(item => {
-        doc.setFontSize(12);
-        doc.text(item.label, margin, yPos);
-        doc.text(`₹${item.value}`, pageWidth - margin - 5, yPos, { align: 'right' });
-        yPos += 10;
-      });
-      
-      // Total
-      yPos += 5;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 10;
-      
-      doc.setFontSize(14);
-      doc.text('Total', margin, yPos);
-      const total = ((order.total + order.addInsTotal + order.tax - (order.discount || 0)).toFixed(2));
-      doc.text(`₹${total}`, pageWidth - margin - 5, yPos, { align: 'right' });
-      
-      // Pickup Details
-      yPos += 20;
-      doc.setFontSize(14);
-      doc.text('PICKUP DETAILS', margin, yPos);
-      yPos += 15;
-      
-      doc.setFontSize(12);
-      doc.text(order.orderDetails?.location || 'Unknown Location', margin, yPos);
-      yPos += 10;
-      doc.text(order.orderDetails?.address || 'No address provided', margin, yPos);
-      
-      // Footer
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.text('Thank you for choosing SlurpinSage!', pageWidth / 2, 285, { align: 'center' });
-        doc.text('We hope to serve you again soon!', pageWidth / 2, 290, { align: 'center' });
-      }
-      
-      doc.save(`SlurpinSage_Receipt_${order.orderId}.pdf`);
+      // Save the PDF
+      pdf.save(`SlurpinSage_Receipt_${order.orderId}.pdf`);
+
+      // Clean up
+      document.body.removeChild(tempDiv);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate receipt. Please try again.');
     }
+  };
+
+  const handleDownloadReceipt = (order) => {
+    setSelectedOrder(order);
+  };
+
+  const handleCloseInvoice = () => {
+    setSelectedOrder(null);
   };
 
   if (!user) {
@@ -584,10 +674,10 @@ const OrderHistory = () => {
                           <div className="mt-6 space-y-3">
                             <button 
                               className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                await downloadReceipt(order);
+                                downloadReceipt(order);
                               }}
                             >
                               <svg
@@ -648,6 +738,13 @@ const OrderHistory = () => {
             </button>
           </nav>
         </div>
+
+        {selectedOrder && (
+          <InvoiceTemplate
+            order={selectedOrder}
+            onClose={handleCloseInvoice}
+          />
+        )}
       </div>
     </div>
   );
