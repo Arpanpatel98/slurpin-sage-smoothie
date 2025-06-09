@@ -5,6 +5,8 @@ import {
   GoogleAuthProvider, 
   signInWithPopup,
   RecaptchaVerifier,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import app from '../../firebase';
@@ -19,6 +21,81 @@ export const db = getFirestore(app);
 // Initialize authentication flags
 window.userPreviouslyAuthenticated = false;
 window.googleUserAuthenticated = false;
+
+// Email/Password Authentication Functions
+export const signUpWithEmail = async (email, password, name) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Update user profile with name
+    if (name) {
+      await user.updateProfile({ displayName: name });
+    }
+
+    // Store additional user info in Firestore
+    await storeUserInfo(user, { name, signupMethod: 'email' }, true);
+
+    return {
+      success: true,
+      user,
+      token: await user.getIdToken(),
+      isNewUser: true
+    };
+  } catch (error) {
+    console.error('Error signing up with email:', error);
+    
+    let errorMessage = 'An error occurred during sign up';
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage = 'An account with this email already exists. Please use the login tab.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/weak-password') {
+      errorMessage = 'Password should be at least 6 characters long.';
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      code: error.code,
+      shouldLogin: error.code === 'auth/email-already-in-use'
+    };
+  }
+};
+
+export const signInWithEmail = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    return {
+      success: true,
+      user,
+      token: await user.getIdToken(),
+      isNewUser: false
+    };
+  } catch (error) {
+    console.error('Error signing in with email:', error);
+    
+    let errorMessage = 'An error occurred during sign in';
+    if (error.code === 'auth/user-not-found') {
+      errorMessage = 'No account found with this email. Please use the signup tab.';
+    } else if (error.code === 'auth/wrong-password') {
+      errorMessage = 'Incorrect password. Please try again.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = 'Please enter a valid email address.';
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = 'This account has been disabled.';
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      code: error.code,
+      shouldSignup: error.code === 'auth/user-not-found'
+    };
+  }
+};
 
 // Configure Google OAuth provider
 googleProvider.setCustomParameters({

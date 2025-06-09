@@ -7,6 +7,8 @@ import {
   verifyOTP,
   signInWithGoogle,
   storeUserInfo,
+  signUpWithEmail,
+  signInWithEmail,
 } from "./firebaseLoginSignup";
 
 const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
@@ -18,12 +20,16 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({
     mobile: "",
     name: "",
     otp: "",
     terms: "",
     general: "",
+    email: "",
+    password: "",
   });
   const intervalRef = useRef(null);
   const recaptchaRef = useRef(null);
@@ -70,6 +76,33 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
       return false;
     }
     setErrors((prev) => ({ ...prev, mobile: "" }));
+    return true;
+  };
+
+  const validateEmail = (email) => {
+    if (!email) {
+      setErrors((prev) => ({ ...prev, email: "Email is required" }));
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, email: "" }));
+    return true;
+  };
+
+  const validatePassword = (password) => {
+    if (!password) {
+      setErrors((prev) => ({ ...prev, password: "Password is required" }));
+      return false;
+    }
+    if (password.length < 6) {
+      setErrors((prev) => ({ ...prev, password: "Password must be at least 6 characters long" }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, password: "" }));
     return true;
   };
 
@@ -282,6 +315,78 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     }
   };
 
+  const handleEmailSignUp = async (activeTab) => {
+    setErrors((prev) => ({ ...prev, general: "" }));
+    
+    if (!validateEmail(email) || !validatePassword(password)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await signUpWithEmail(email, password, name);
+      if (result.success) {
+        setUser(result.user);
+        setSuccessMessage("Your account has been created successfully! You are now logged in.");
+        setShowSuccessPopup(true);
+        setEmail("");
+        setPassword("");
+        setName("");
+        setAgree(false);
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: result.error,
+        }));
+        if (result.shouldLogin) {
+          setStep(1);
+        }
+      }
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        general: error.message || "An unexpected error occurred during sign up.",
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (activeTab) => {
+    setErrors((prev) => ({ ...prev, general: "" }));
+    
+    if (!validateEmail(email) || !validatePassword(password)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await signInWithEmail(email, password);
+      if (result.success) {
+        setUser(result.user);
+        setSuccessMessage("Welcome back! You have successfully logged in.");
+        setShowSuccessPopup(true);
+        setEmail("");
+        setPassword("");
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: result.error,
+        }));
+        if (result.shouldSignup) {
+          setStep(1);
+        }
+      }
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        general: error.message || "An unexpected error occurred during sign in.",
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResend = async (isLogin) => {
     setTimer(40);
     setOtp(["", "", "", "", "", ""]);
@@ -291,7 +396,7 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
   const handleBack = () => {
     setStep(1);
     setOtp(["", "", "", "", "", ""]);
-    setErrors({ mobile: "", name: "", otp: "", terms: "", general: "" });
+    setErrors({ mobile: "", name: "", otp: "", terms: "", general: "", email: "", password: "" });
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
       window.recaptchaVerifier = null;
@@ -314,13 +419,21 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     user,
     errors,
     setErrors,
+    email,
+    setEmail,
+    password,
+    setPassword,
     validateMobile,
+    validateEmail,
+    validatePassword,
     handleGetOtp,
     handleOtpChange,
     handleOtpKeyDown,
     handleOtpPaste,
     handleVerify,
     handleGoogleSignIn,
+    handleEmailSignUp,
+    handleEmailSignIn,
     handleResend,
     handleBack,
   };
