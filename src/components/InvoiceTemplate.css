@@ -1,4 +1,4 @@
-.invoice-container {
+.invoice-container_invoiceTemplate {
   width: 800px;
   background: white;
   position: relative;
@@ -7,7 +7,7 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.leaf-pattern {
+.leaf-pattern_invoiceTemplate {
   position: absolute;
   top: 0;
   left: 0;
@@ -17,81 +17,81 @@
   z-index: 0;
 }
 
-.content-wrapper {
+.content-wrapper_invoiceTemplate {
   position: relative;
   z-index: 1;
   padding: 20px;
 }
 
-.invoice-header {
+.invoice-header_invoiceTemplate {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.logo-text {
+.logo-text_invoiceTemplate {
   font-size: 24px;
   font-weight: bold;
   color: #1a4d2e;
 }
 
-.text-sm {
+.text-sm_invoiceTemplate {
   font-size: 14px;
 }
 
-.opacity-80 {
+.opacity-80_invoiceTemplate {
   opacity: 0.8;
 }
 
-.text-2xl {
+.text-2xl_invoiceTemplate {
   font-size: 24px;
 }
 
-.font-bold {
+.font-bold_invoiceTemplate {
   font-weight: bold;
 }
 
-.text-right {
+.text-right_invoiceTemplate {
   text-align: right;
 }
 
-.section-title {
+.section-title_invoiceTemplate {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
   color: #1a4d2e;
 }
 
-.grid {
+.grid_invoiceTemplate {
   display: grid;
 }
 
-.grid-cols-2 {
+.grid-cols-2_invoiceTemplate {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.gap-8 {
+.gap-8_invoiceTemplate {
   gap: 32px;
 }
 
-.mb-8 {
+.mb-8_invoiceTemplate {
   margin-bottom: 32px;
 }
 
-.font-medium {
+.font-medium_invoiceTemplate {
   font-weight: 500;
 }
 
-.text-gray-600 {
+.text-gray-600_invoiceTemplate {
   color: #4b5563;
 }
 
-.text-gray-500 {
+.text-gray-500_invoiceTemplate {
   color: #6b7280;
 }
 
-.text-xs {
+.text-xs_invoiceTemplate {
   font-size: 12px;
 }
 
@@ -110,11 +110,11 @@ th {
   font-weight: 600;
 }
 
-.item-row td {
+.item-row_invoiceTemplate td {
   border-bottom: 1px solid #dee2e6;
 }
 
-.nutritional-badge {
+.nutritional-badge_invoiceTemplate {
   display: inline-block;
   padding: 2px 8px;
   margin-right: 5px;
@@ -123,86 +123,86 @@ th {
   color: white;
 }
 
-.nutritional-badge.vegan {
+.nutritional-badge_invoiceTemplate.vegan {
   background-color: #28a745;
 }
 
-.border-t {
+.border-t_invoiceTemplate {
   border-top: 1px solid;
 }
 
-.border-b {
+.border-b_invoiceTemplate {
   border-bottom: 1px solid;
 }
 
-.border-gray-200 {
+.border-gray-200_invoiceTemplate {
   border-color: #e5e7eb;
 }
 
-.border-gray-300 {
+.border-gray-300_invoiceTemplate {
   border-color: #d1d5db;
 }
 
-.pt-6 {
+.pt-6_invoiceTemplate {
   padding-top: 24px;
 }
 
-.py-2 {
+.py-2_invoiceTemplate {
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
-.py-3 {
+.py-3_invoiceTemplate {
   padding-top: 12px;
   padding-bottom: 12px;
 }
 
-.px-4 {
+.px-4_invoiceTemplate {
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.mt-2 {
+.mt-2_invoiceTemplate {
   margin-top: 8px;
 }
 
-.mt-1 {
+.mt-1_invoiceTemplate {
   margin-top: 4px;
 }
 
-.flex {
+.flex_invoiceTemplate {
   display: flex;
 }
 
-.justify-between {
+.justify-between_invoiceTemplate {
   justify-content: space-between;
 }
 
-.justify-end {
+.justify-end_invoiceTemplate {
   justify-content: flex-end;
 }
 
-.items-center {
+.items-center_invoiceTemplate {
   align-items: center;
 }
 
-.w-64 {
+.w-64_invoiceTemplate {
   width: 256px;
 }
 
-.w-full {
+.w-full_invoiceTemplate {
   width: 100%;
 }
 
-.p-4 {
+.p-4_invoiceTemplate {
   padding: 16px;
 }
 
-.rounded-lg {
+.rounded-lg_invoiceTemplate {
   border-radius: 8px;
 }
 
-.footer-graphic {
+.footer-graphic_invoiceTemplate {
   background-color: #1a4d2e;
   padding: 10px;
   text-align: center;
@@ -211,22 +211,22 @@ th {
   font-weight: 500;
 }
 
-.mr-4 {
+.mr-4_invoiceTemplate {
   margin-right: 16px;
 }
 
-.ml-4 {
+.ml-4_invoiceTemplate {
   margin-left: 16px;
 }
 
-.mr-1 {
+.mr-1_invoiceTemplate {
   margin-right: 4px;
 }
 
-.text-green-800 {
+.text-green-800_invoiceTemplate {
   color: #1a4d2e;
 }
 
-.text-green-600 {
+.text-green-600_invoiceTemplate {
   color: #28a745;
 } 
