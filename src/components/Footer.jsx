@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebookF, faInstagram, faTwitter, faPinterest } from '@fortawesome/free-brands-svg-icons';
+import { faMapMarkerAlt, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import './Footer.css';
 
 function Footer() {
@@ -42,13 +43,13 @@ function Footer() {
             <h4>Contact Us</h4>
             <ul className="contact-info">
               <li>
-                <FontAwesomeIcon icon="fa-solid fa-map-marker-alt" /> 123 Green Street, Healthy City, HC 12345
+                <FontAwesomeIcon icon={faMapMarkerAlt} /> 123 Green Street, Healthy City, HC 12345
               </li>
               <li>
-                <FontAwesomeIcon icon="fa-solid fa-phone" /> (555) 123-4567
+                <FontAwesomeIcon icon={faPhone} /> (555) 123-4567
               </li>
               <li>
-                <FontAwesomeIcon icon="fa-solid fa-envelope" /> info@slurpinsage.com
+                <FontAwesomeIcon icon={faEnvelope} /> info@slurpinsage.com
               </li>
             </ul>
           </div>

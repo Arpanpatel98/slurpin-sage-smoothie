@@ -97,7 +97,7 @@
 .sidebar-toggle {
   position: absolute;
   top: 1rem;
-  right: -0.75rem;
+  right: -0.1px;
   width: 1.5rem;
   height: 1.5rem;
   background-color: white;

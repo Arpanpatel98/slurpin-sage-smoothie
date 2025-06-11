@@ -348,11 +348,11 @@ const AdminDashboard = () => {
     <div className="flex_AdminDashboard flex-col_AdminDashboard flex-1_AdminDashboard overflow-hidden_AdminDashboard admin-dashboard_AdminDashboard">
       {/* Top Navigation */}
       <div className="relative_AdminDashboard z-10_AdminDashboard flex-shrink-0_AdminDashboard flex_AdminDashboard h-16_AdminDashboard bg-white_AdminDashboard border-b_AdminDashboard border-gray-200_AdminDashboard">
-        <button type="button" className="md:hidden_AdminDashboard px-4_AdminDashboard text-gray-500_AdminDashboard focus:outline-none_AdminDashboard focus:ring-2_AdminDashboard focus:ring-inset_AdminDashboard focus:ring-brand-500_AdminDashboard">
+        {/* <button type="button" className="md:hidden_AdminDashboard px-4_AdminDashboard text-gray-500_AdminDashboard focus:outline-none_AdminDashboard focus:ring-2_AdminDashboard focus:ring-inset_AdminDashboard focus:ring-brand-500_AdminDashboard">
           <svg className="h-6_AdminDashboard w-6_AdminDashboard" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
-        </button>
+        </button> */}
         
         <div className="flex-1_AdminDashboard px-4_AdminDashboard flex_AdminDashboard justify-between_AdminDashboard">
           <div className="flex-1_AdminDashboard flex_AdminDashboard items-center_AdminDashboard">
@@ -433,7 +433,7 @@ const AdminDashboard = () => {
                   </svg>
                   Export
                 </button>
-                <button
+                {/* <button
                   type="button"
                   className="inline-flex_AdminDashboard items-center_AdminDashboard px-4_AdminDashboard py-2_AdminDashboard border_AdminDashboard border-transparent_AdminDashboard shadow-sm_AdminDashboard text-sm_AdminDashboard font-medium_AdminDashboard rounded-md_AdminDashboard text-white_AdminDashboard bg-brand-500_AdminDashboard hover:bg-brand-600_AdminDashboard focus:outline-none_AdminDashboard focus:ring-2_AdminDashboard focus:ring-offset-2_AdminDashboard focus:ring-brand-500_AdminDashboard"
                   onClick={() => navigate('/admin/orders/new')}
@@ -442,7 +442,7 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                   </svg>
                   Create Order
-                </button>
+                </button> */}
               </div>
             </div>
             
