@@ -78,7 +78,7 @@ function Navbar() {
             </li>
           )}
           <li className="cart-icon">
-            <CartButton />
+            <CartButton onCartClick={handleLinkClick} />
           </li>
           {isLoggedIn ? (
             <li className="auth-link">
