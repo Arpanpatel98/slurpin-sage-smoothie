@@ -63,38 +63,26 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
         {errors.general && <div className="error-message">{errors.general}</div>}
 
         {/* Authentication Method Selector */}
-        <div className="flex justify-center space-x-4 mb-6">
+        <div className="auth-method-buttons">
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "phone"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "phone" ? "active" : ""}`}
             onClick={() => setAuthMethod("phone")}
           >
-            <FaPhone className="w-4 h-4" />
+            <FaPhone />
             <span>Phone</span>
           </button>
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "email"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "email" ? "active" : ""}`}
             onClick={() => setAuthMethod("email")}
           >
-            <FaEnvelope className="w-4 h-4" />
+            <FaEnvelope />
             <span>Email</span>
           </button>
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "google"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "google" ? "active" : ""}`}
             onClick={() => setAuthMethod("google")}
           >
-            <FaGoogle className="w-4 h-4" />
+            <FaGoogle />
             <span>Google</span>
           </button>
         </div>
@@ -105,7 +93,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
             {step === 1 ? (
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="form-label">
                     Full Name
                   </label>
                   <input
@@ -113,12 +101,12 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                    className="form-input"
                   />
                   {errors.name && <div className="error-message">{errors.name}</div>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="form-label">
                     Mobile Number
                   </label>
                   <input
@@ -126,19 +114,18 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     placeholder="Enter your 10-digit mobile number"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                    className="form-input"
                   />
                   {errors.mobile && <div className="error-message">{errors.mobile}</div>}
                 </div>
-                <div className="flex items-center">
+                <div className="form-checkbox">
                   <input
                     type="checkbox"
                     id="agree"
                     checked={agree}
                     onChange={(e) => setAgree(e.target.checked)}
-                    className="h-4 w-4 text-sage-600 focus:ring-sage-500 border-gray-300 rounded"
                   />
-                  <label htmlFor="agree" className="ml-2 block text-sm text-gray-700">
+                  <label htmlFor="agree">
                     I agree to the Terms and Conditions
                   </label>
                 </div>
@@ -157,7 +144,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">Enter OTP</label>
+                    <label className="form-label">Enter OTP</label>
                     <span className="text-sm text-sage-600 font-medium">
                       00:{timer < 10 ? `0${timer}` : timer}
                     </span>
@@ -208,7 +195,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
         {authMethod === "email" && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="form-label">
                 Full Name
               </label>
               <input
@@ -216,12 +203,12 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                className="form-input"
               />
               {errors.name && <div className="error-message">{errors.name}</div>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="form-label">
                 Email Address
               </label>
               <input
@@ -229,12 +216,12 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                className="form-input"
               />
               {errors.email && <div className="error-message">{errors.email}</div>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="form-label">
                 Password
               </label>
               <input
@@ -242,19 +229,18 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                className="form-input"
               />
               {errors.password && <div className="error-message">{errors.password}</div>}
             </div>
-            <div className="flex items-center">
+            <div className="form-checkbox">
               <input
                 type="checkbox"
-                id="agree"
+                id="agree-email"
                 checked={agree}
                 onChange={(e) => setAgree(e.target.checked)}
-                className="h-4 w-4 text-sage-600 focus:ring-sage-500 border-gray-300 rounded"
               />
-              <label htmlFor="agree" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="agree-email">
                 I agree to the Terms and Conditions
               </label>
             </div>
@@ -275,7 +261,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
         {authMethod === "google" && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="form-label">
                 Full Name
               </label>
               <input
@@ -283,7 +269,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                className="form-input"
               />
               {errors.name && <div className="error-message">{errors.name}</div>}
             </div>
@@ -293,7 +279,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 id="agree"
                 checked={agree}
                 onChange={(e) => setAgree(e.target.checked)}
-                className="h-4 w-4 text-sage-600 focus:ring-sage-500 border-gray-300 rounded"
+                className="form-checkbox"
               />
               <label htmlFor="agree" className="ml-2 block text-sm text-gray-700">
                 I agree to the Terms and Conditions

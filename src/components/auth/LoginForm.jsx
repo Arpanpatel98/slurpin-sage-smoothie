@@ -39,38 +39,26 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
         {errors.general && <div className="error-message">{errors.general}</div>}
 
         {/* Authentication Method Selector */}
-        <div className="flex justify-center space-x-4 mb-6">
+        <div className="auth-method-buttons">
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "phone"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "phone" ? "active" : ""}`}
             onClick={() => setAuthMethod("phone")}
           >
-            <FaPhone className="w-4 h-4" />
+            <FaPhone />
             <span>Phone</span>
           </button>
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "email"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "email" ? "active" : ""}`}
             onClick={() => setAuthMethod("email")}
           >
-            <FaEnvelope className="w-4 h-4" />
+            <FaEnvelope />
             <span>Email</span>
           </button>
           <button
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-              authMethod === "google"
-                ? "bg-sage-500 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className={`auth-method-button ${authMethod === "google" ? "active" : ""}`}
             onClick={() => setAuthMethod("google")}
           >
-            <FaGoogle className="w-4 h-4" />
+            <FaGoogle />
             <span>Google</span>
           </button>
         </div>
