@@ -428,37 +428,6 @@ export const signInWithGoogle = async (isLogin = false) => {
     // Check if this is a new user by comparing creation and last sign-in times
     const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
     
-    // If this is a login attempt and it's a new user, we need to handle it differently
-    if (isLogin && isNewUser) {
-      try {
-        // Sign out the user since they haven't signed up yet
-        await auth.signOut();
-        return {
-          success: false,
-          error: 'No account found with this Google account. Please sign up first.',
-          code: 'auth/user-not-found',
-          shouldSignup: true
-        };
-      } catch (signOutError) {
-        console.error('Error signing out during Google login flow:', signOutError);
-      }
-    }
-    
-    // If this is a signup attempt and it's an existing user
-    if (!isLogin && !isNewUser) {
-      try {
-        await auth.signOut();
-        return {
-          success: false,
-          error: 'An account with this Google email already exists. Please sign in instead.',
-          code: 'auth/account-exists',
-          shouldLogin: true
-        };
-      } catch (signOutError) {
-        console.error('Error signing out during Google signup flow:', signOutError);
-      }
-    }
-    
     // Store user info in Firestore
     await storeUserInfo(user, {
       signupMethod: 'google',
@@ -475,7 +444,6 @@ export const signInWithGoogle = async (isLogin = false) => {
     console.error('Error signing in with Google:', error);
     
     let errorMessage = 'Failed to sign in with Google';
-    let shouldSignup = false;
     
     switch (error.code) {
       case 'auth/popup-closed-by-user':
@@ -497,8 +465,7 @@ export const signInWithGoogle = async (isLogin = false) => {
     return { 
       success: false, 
       error: errorMessage,
-      code: error.code,
-      shouldSignup
+      code: error.code
     };
   }
 };

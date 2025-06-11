@@ -249,30 +249,16 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
       if (result.success) {
         setUser(result.user);
         setSuccessMessage(
-          isLogin
-            ? "Welcome back! You have successfully logged in with Google."
-            : "Your account has been created successfully with Google! You are now logged in."
+          result.isNewUser
+            ? "Your account has been created successfully with Google! You are now logged in."
+            : "Welcome back! You have successfully logged in with Google."
         );
         setShowSuccessPopup(true);
       } else {
-        if (result.shouldSignup) {
-          setActiveTab("signup");
-          setErrors((prev) => ({
-            ...prev,
-            general: result.error
-          }));
-        } else if (result.shouldLogin) {
-          setActiveTab("login");
-          setErrors((prev) => ({
-            ...prev,
-            general: result.error
-          }));
-        } else {
-          setErrors((prev) => ({
-            ...prev,
-            general: result.error
-          }));
-        }
+        setErrors((prev) => ({
+          ...prev,
+          general: result.error
+        }));
       }
     } catch (error) {
       setErrors((prev) => ({
