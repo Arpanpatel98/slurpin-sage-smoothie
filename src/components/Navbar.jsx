@@ -102,7 +102,7 @@ function Navbar() {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close_loginSignup" onClick={handleCloseModal}>×</button>
-            <LoginSignupPage />
+            <LoginSignupPage onClose={handleCloseModal} />
           </div>
         </div>
       )}

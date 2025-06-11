@@ -1,7 +1,7 @@
 .edit-product-container {
   max-width: 800px;
-  margin: 2rem auto;
-  padding: 2rem;
+  margin: 1rem;
+  padding: 1rem;
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -9,13 +9,13 @@
 
 .edit-product-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .edit-product-header h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #111827;
   margin: 0;
@@ -30,6 +30,7 @@
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
+  width: 100%;
 }
 
 .back-button:hover {
@@ -39,7 +40,7 @@
 .edit-product-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .form-group {
@@ -56,16 +57,19 @@
 
 .form-group input[type="text"],
 .form-group input[type="number"],
-.form-group input[type="url"] {
+.form-group input[type="url"],
+.form-group textarea {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   font-size: 0.875rem;
   color: #111827;
   transition: border-color 0.2s;
+  width: 100%;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
@@ -95,6 +99,11 @@
   border-radius: 0.375rem;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-ingredient:hover {
@@ -110,7 +119,7 @@
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s;
-  width: fit-content;
+  width: 100%;
 }
 
 .add-ingredient:hover {
@@ -139,7 +148,8 @@
 
 .form-actions {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-top: 1rem;
 }
 
@@ -152,6 +162,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  width: 100%;
 }
 
 .save-button {
@@ -195,68 +206,100 @@
   color: #dc2626;
 }
 
-@media (max-width: 640px) {
+/* Image Upload Styles */
+.image-preview {
+  width: 100%;
+  height: 200px;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-upload {
+  position: relative;
+  width: 100%;
+}
+
+.file-upload input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-upload label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background-color: #f3f4f6;
+  color: #374151;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.file-upload label:hover {
+  background-color: #e5e7eb;
+}
+
+/* Responsive Breakpoints */
+@media (min-width: 640px) {
   .edit-product-container {
-    margin: 1rem;
-    padding: 1rem;
+    margin: 1.5rem auto;
+    padding: 1.5rem;
   }
 
   .edit-product-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .edit-product-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .back-button {
+    width: auto;
+  }
+
+  .add-ingredient {
+    width: fit-content;
   }
 
   .form-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
 
   .save-button,
   .cancel-button {
-    width: 100%;
+    width: auto;
   }
 }
 
-.form-section {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
+@media (min-width: 768px) {
+  .edit-product-container {
+    margin: 2rem auto;
+    padding: 2rem;
+  }
 
-.form-section:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.btn-add {
-  transition: all 0.2s ease-in-out;
-}
-
-.btn-add:hover {
-  transform: translateY(-1px);
-}
-
-.image-preview {
-  min-height: 12rem;
-  background-color: #f9fafb;
-  border: 2px dashed #e5e7eb;
-  transition: all 0.2s ease-in-out;
-}
-
-.image-preview:hover {
-  border-color: #10b981;
-}
-
-.file-upload input[type="file"] {
-  display: none;
-}
-
-.file-upload label {
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.file-upload label:hover {
-  background-color: #f3f4f6;
+  .image-preview {
+    height: 300px;
+  }
 }
 
 /* Table styles */

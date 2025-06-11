@@ -400,13 +400,25 @@ button.border-sage-500:hover {
 }
 
 .back-home {
-  margin-top: 30px;
-  font-size: 14px;
-  color: #4caf50;
-  cursor: pointer;
+  margin-top: 1.5rem;
   text-align: center;
-  padding: 12px;
-  min-height: 48px;
+  color: #4d8d53;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+  user-select: none;
+}
+
+.back-home:hover {
+  color: #2d5a32;
+  background-color: rgba(77, 141, 83, 0.1);
+  transform: translateX(-4px);
+}
+
+.back-home:active {
+  transform: translateX(-2px);
 }
 
 /* Error Message Styles */

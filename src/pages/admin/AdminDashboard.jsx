@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import './AdminDashboard.css';
+import * as XLSX from 'xlsx';
 
 const AdminDashboard = () => {
   const auth = getAuth();
@@ -203,48 +204,6 @@ const AdminDashboard = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const filteredOrders = orders
-    .filter((order) => {
-      // Status Filter
-      if (statusFilter !== 'all' && order.status.toLowerCase() !== statusFilter.toLowerCase()) {
-        return false;
-      }
-
-      // Search Query Filter
-      if (searchQuery && !order.id.toLowerCase().includes(searchQuery.toLowerCase()) &&
-          !order.customerName.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-
-      // Date Filter
-      if (dateFilter !== 'all' && dateFilter !== 'custom') {
-        const orderDate = new Date(order.timestamp);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const thisWeek = new Date(today);
-        thisWeek.setDate(today.getDate() - today.getDay());
-        const lastWeek = new Date(thisWeek);
-        lastWeek.setDate(thisWeek.getDate() - 7);
-        const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-        if (dateFilter === 'today' && orderDate < today) return false;
-        if (dateFilter === 'yesterday' && (orderDate < yesterday || orderDate >= today)) return false;
-        if (dateFilter === 'this_week' && orderDate < thisWeek) return false;
-        if (dateFilter === 'last_week' && (orderDate < lastWeek || orderDate >= thisWeek)) return false;
-        if (dateFilter === 'this_month' && orderDate < thisMonth) return false;
-      }
-
-      // Location Filter
-      if (locationFilter && order.delivery.detailedAddress.toLowerCase() !== locationFilter.toLowerCase()) {
-        return false;
-      }
-
-      return true;
-    })
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
   const stats = {
     total: orders.length,
     pending: orders.filter(o => o.status === 'pending').length,
@@ -252,10 +211,110 @@ const AdminDashboard = () => {
     completed: orders.filter(o => o.status === 'delivered').length,
   };
 
+  // Filter orders based on status, date, and search query
+  const filteredOrders = orders.filter(order => {
+    // Status filter
+    if (statusFilter !== 'all' && order.status !== statusFilter) {
+      return false;
+    }
+
+    // Date filter
+    const orderDate = new Date(order.timestamp);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay());
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    switch (dateFilter) {
+      case 'today':
+        if (orderDate < today) return false;
+        break;
+      case 'yesterday':
+        if (orderDate < yesterday || orderDate >= today) return false;
+        break;
+      case 'this_week':
+        if (orderDate < thisWeekStart) return false;
+        break;
+      case 'last_week':
+        if (orderDate < lastWeekStart || orderDate >= thisWeekStart) return false;
+        break;
+      case 'this_month':
+        if (orderDate < thisMonthStart) return false;
+        break;
+    }
+
+    // Search query
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        order.id.toLowerCase().includes(searchLower) ||
+        (usersData[order.userId]?.name || '').toLowerCase().includes(searchLower) ||
+        (usersData[order.userId]?.phone || '').toLowerCase().includes(searchLower) ||
+        order.items.some(item => item.name.toLowerCase().includes(searchLower))
+      );
+    }
+
+    return true;
+  });
+
   const handleExportOrders = () => {
-    // Placeholder for export logic
-    alert('Export button clicked. Implement export functionality here.');
-    console.log('Exporting filtered orders:', filteredOrders);
+    console.log('Starting export...');
+    console.log('Filtered orders:', filteredOrders);
+    
+    // Prepare data for export
+    const exportData = filteredOrders.map(order => ({
+      'Order ID': order.id,
+      'Customer Name': usersData[order.userId]?.name || 'N/A',
+      'Phone': usersData[order.userId]?.phone || 'N/A',
+      'Date': new Date(order.timestamp).toLocaleDateString(),
+      'Time': new Date(order.timestamp).toLocaleTimeString(),
+      'Items': order.items.map(item => `${item.name} (${item.quantity})`).join(', '),
+      'Total Amount': `₹${order.total}`,
+      'Payment Method': order.paymentMethod,
+      'Status': order.status,
+      'Delivery Address': `${order.delivery.detailedAddress}${order.delivery.floor ? `, Floor ${order.delivery.floor}` : ''}`,
+      'Delivery Instructions': order.delivery.instructions || 'N/A'
+    }));
+
+    console.log('Export data prepared:', exportData);
+
+    try {
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      console.log('Worksheet created');
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
+      console.log('Workbook created');
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      console.log('Excel buffer generated');
+
+      const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      console.log('Blob created');
+
+      // Create download link
+      const url = window.URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      console.log('Download link created, clicking...');
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      console.log('Export completed successfully');
+    } catch (error) {
+      console.error('Error during export:', error);
+      alert('Error exporting orders. Please try again.');
+    }
   };
 
   if (!user) {
@@ -364,7 +423,11 @@ const AdminDashboard = () => {
                 <p className="mt-1_AdminDashboard text-sm_AdminDashboard text-gray-500_AdminDashboard">Manage and process customer orders</p>
               </div>
               <div className="mt-4_AdminDashboard md:mt-0_AdminDashboard flex_AdminDashboard space-x-3_AdminDashboard">
-                <button type="button" className="inline-flex_AdminDashboard items-center_AdminDashboard px-4_AdminDashboard py-2_AdminDashboard border_AdminDashboard border-gray-300_AdminDashboard shadow-sm_AdminDashboard text-sm_AdminDashboard font-medium_AdminDashboard rounded-md_AdminDashboard text-gray-700_AdminDashboard bg-white_AdminDashboard hover:bg-gray-50_AdminDashboard focus:outline-none_AdminDashboard focus:ring-2_AdminDashboard focus:ring-offset-2_AdminDashboard focus:ring-brand-500_AdminDashboard">
+                <button 
+                  type="button" 
+                  onClick={handleExportOrders}
+                  className="inline-flex_AdminDashboard items-center_AdminDashboard px-4_AdminDashboard py-2_AdminDashboard border_AdminDashboard border-gray-300_AdminDashboard shadow-sm_AdminDashboard text-sm_AdminDashboard font-medium_AdminDashboard rounded-md_AdminDashboard text-gray-700_AdminDashboard bg-white_AdminDashboard hover:bg-gray-50_AdminDashboard focus:outline-none_AdminDashboard focus:ring-2_AdminDashboard focus:ring-offset-2_AdminDashboard focus:ring-brand-500_AdminDashboard"
+                >
                   <svg className="-ml-1_AdminDashboard mr-2_AdminDashboard h-5_AdminDashboard w-5_AdminDashboard text-gray-500_AdminDashboard" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                   </svg>

@@ -9,6 +9,7 @@ import {
   storeUserInfo,
   signUpWithEmail,
   signInWithEmail,
+  cleanupRecaptcha,
 } from "./firebaseLoginSignup";
 
 const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
@@ -31,17 +32,31 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     email: "",
     password: "",
   });
+  const [activeTab, setActiveTab] = useState("login");
   const intervalRef = useRef(null);
   const recaptchaRef = useRef(null);
 
+  // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
+      cleanupRecaptcha();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
   }, []);
+
+  // Clear reCAPTCHA when switching auth methods
+  useEffect(() => {
+    cleanupRecaptcha();
+  }, [activeTab]);
+
+  // Clear reCAPTCHA when step changes
+  useEffect(() => {
+    if (step === 1) {
+      cleanupRecaptcha();
+    }
+  }, [step]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -106,34 +121,38 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     return true;
   };
 
-  const handleGetOtp = async (isLogin) => {
-    setErrors((prev) => ({ ...prev, general: "" }));
-    if (!validateMobile(mobile)) return;
+  const handleRequestOTP = async () => {
+    clearErrors();
+    if (!validateMobile(mobile)) {
+      setErrors((prev) => ({
+        ...prev,
+        mobile: "Please enter a valid 10-digit mobile number"
+      }));
+      return;
+    }
 
     setLoading(true);
     try {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
-
-      generateRecaptcha();
-      const confirmationResult = await requestOTP(mobile, isLogin);
-      if (confirmationResult.success) {
+      // Clean up any existing reCAPTCHA before requesting new OTP
+      cleanupRecaptcha();
+      
+      const result = await requestOTP(mobile, activeTab === "login");
+      if (result.success) {
         setStep(2);
+        setTimer(40);
       } else {
         setErrors((prev) => ({
           ...prev,
-          general: confirmationResult.accountNotFound
-            ? confirmationResult.error
-            : confirmationResult.error || "Failed to send OTP. Please try again.",
+          general: result.error
         }));
+        cleanupRecaptcha();
       }
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        general: error.message || "An unexpected error occurred while requesting OTP.",
+        general: error.message || "Failed to send OTP"
       }));
+      cleanupRecaptcha();
     } finally {
       setLoading(false);
     }
@@ -192,133 +211,86 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     }
   };
 
-  const handleVerify = async (isLogin, activeTab) => {
-    setErrors((prev) => ({ ...prev, general: "", otp: "" }));
-    const enteredOtp = otp.join("");
-    if (enteredOtp.length !== 6) {
-      setErrors((prev) => ({ ...prev, otp: "Please enter the complete 6-digit OTP" }));
+  const handleVerify = async (isLogin) => {
+    clearErrors();
+    if (otp.some((digit) => !digit)) {
+      setErrors((prev) => ({ ...prev, otp: "Please enter the complete OTP" }));
       return;
     }
 
     setLoading(true);
     try {
-      const result = await verifyOTP(enteredOtp, isLogin);
-      if (result.success && result.user) {
+      const result = await verifyOTP(otp.join(""), isLogin);
+      if (result.success) {
         setUser(result.user);
-
-        if (activeTab === "signup" && name) {
-          try {
-            await result.user.updateProfile({ displayName: name });
-          } catch (profileError) {
-            console.error("Error updating user profile:", profileError);
-          }
-          try {
-            await storeUserInfo(result.user, { name, signupMethod: activeTab }, result.isNewUser);
-          } catch (firestoreError) {
-            console.error("Error storing user info in Firestore:", firestoreError);
-          }
-        }
-
         setSuccessMessage(
-          activeTab === "signup"
-            ? "Your account has been created successfully! You are now logged in."
-            : "Welcome back! You have successfully logged in."
+          isLogin
+            ? "Welcome back! You have successfully logged in."
+            : "Your account has been created successfully! You are now logged in."
         );
         setShowSuccessPopup(true);
         setOtp(["", "", "", "", "", ""]);
-        setStep(1);
         setMobile("");
-        setName("");
-        setAgree(false);
-      } else if (result.shouldSignup) {
-        setErrors((prev) => ({
-          ...prev,
-          general: "Account not found for login. Please use the signup tab.",
-        }));
-        setStep(1);
-      } else if (result.shouldLogin) {
-        setErrors((prev) => ({
-          ...prev,
-          general: "An account with this number already exists. Please use the login tab.",
-        }));
-        setStep(1);
-      } else if (result.code === "auth/invalid-verification-code") {
-        setErrors((prev) => ({ ...prev, otp: "Invalid OTP. Please check and try again." }));
-      } else if (result.code === "auth/code-expired") {
-        setErrors((prev) => ({ ...prev, otp: "OTP has expired. Please request a new one." }));
-      } else if (result.code === "auth/user-disabled") {
-        setErrors((prev) => ({ ...prev, general: "Your account has been disabled." }));
-      } else if (result.code === "auth/too-many-requests") {
-        setErrors((prev) => ({ ...prev, general: "Too many verification attempts. Please try again later." }));
-      } else if (result.code === "auth/invalid-verification-id") {
-        setErrors((prev) => ({ ...prev, general: "Verification session expired. Please request a new OTP." }));
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error || "An unexpected error occurred during verification.",
-        }));
+        handleAuthError(result, true);
       }
     } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.message || "An unexpected error occurred. Please try again.",
-      }));
+      handleAuthError(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async (isLogin, activeTab) => {
+  const handleGoogleSignIn = async (isLogin) => {
+    clearErrors();
     setLoading(true);
-    setErrors((prev) => ({ ...prev, general: "" }));
-
     try {
       const result = await signInWithGoogle(isLogin);
-      if (result.success && result.user) {
+      if (result.success) {
         setUser(result.user);
-        try {
-          await storeUserInfo(result.user, { signupMethod: "google" }, result.isNewUser);
-        } catch (firestoreError) {
-          console.error("Error storing Google user info in Firestore:", firestoreError);
-        }
         setSuccessMessage(
-          activeTab === "signup"
-            ? "Your account has been created successfully with Google! You are now logged in."
-            : "Welcome back! You have successfully logged in with Google."
+          isLogin
+            ? "Welcome back! You have successfully logged in with Google."
+            : "Your account has been created successfully with Google! You are now logged in."
         );
         setShowSuccessPopup(true);
-      } else if (result.shouldSignup) {
-        setErrors((prev) => ({
-          ...prev,
-          general: "Google account not found for login. Please use the signup tab.",
-        }));
-      } else if (result.shouldLogin) {
-        setErrors((prev) => ({
-          ...prev,
-          general: "A Google account with this email already exists. Please use the login tab.",
-        }));
-      } else if (result.code === "auth/popup-closed-by-user") {
-        setErrors((prev) => ({ ...prev, general: "Google sign-in popup was closed." }));
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error || "Failed to sign in with Google. Please try again.",
-        }));
+        if (result.shouldSignup) {
+          setActiveTab("signup");
+          setErrors((prev) => ({
+            ...prev,
+            general: result.error
+          }));
+        } else if (result.shouldLogin) {
+          setActiveTab("login");
+          setErrors((prev) => ({
+            ...prev,
+            general: result.error
+          }));
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            general: result.error
+          }));
+        }
       }
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
-        general: error.message || "An unexpected error occurred during Google sign-in.",
+        general: error.message || "An unexpected error occurred during Google authentication."
       }));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailSignUp = async (activeTab) => {
+  const handleEmailSignUp = async () => {
     setErrors((prev) => ({ ...prev, general: "" }));
     
-    if (!validateEmail(email) || !validatePassword(password)) {
+    if (!validateEmail(email) || !validatePassword(password) || !name.trim()) {
+      if (!name.trim()) {
+        setErrors((prev) => ({ ...prev, name: "Name is required" }));
+      }
       return;
     }
 
@@ -352,9 +324,8 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     }
   };
 
-  const handleEmailSignIn = async (activeTab) => {
-    setErrors((prev) => ({ ...prev, general: "" }));
-    
+  const handleEmailSignIn = async () => {
+    clearErrors();
     if (!validateEmail(email) || !validatePassword(password)) {
       return;
     }
@@ -369,37 +340,70 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
         setEmail("");
         setPassword("");
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error,
-        }));
-        if (result.shouldSignup) {
-          setStep(1);
-        }
+        handleAuthError(result, true);
       }
     } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.message || "An unexpected error occurred during sign in.",
-      }));
+      handleAuthError(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = async (isLogin) => {
+  const handleResend = async () => {
     setTimer(40);
     setOtp(["", "", "", "", "", ""]);
-    await handleGetOtp(isLogin);
+    await handleRequestOTP();
   };
 
   const handleBack = () => {
     setStep(1);
     setOtp(["", "", "", "", "", ""]);
     setErrors({ mobile: "", name: "", otp: "", terms: "", general: "", email: "", password: "" });
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
+    cleanupRecaptcha();
+  };
+
+  const clearErrors = () => {
+    setErrors({
+      mobile: "",
+      name: "",
+      otp: "",
+      terms: "",
+      general: "",
+      email: "",
+      password: "",
+    });
+  };
+
+  const handleAuthError = (error, shouldSwitchTab = false) => {
+    if (error.shouldSignup && activeTab === "login") {
+      setErrors((prev) => ({
+        ...prev,
+        general: error.error || "Please sign up first to create an account.",
+      }));
+      setActiveTab("signup");
+    } else if (error.shouldLogin && activeTab === "signup") {
+      setErrors((prev) => ({
+        ...prev,
+        general: error.error || "An account already exists. Please sign in instead.",
+      }));
+      if (shouldSwitchTab) {
+        setActiveTab("login");
+      }
+    } else if (error.isInvalidCredentials) {
+      setErrors((prev) => ({
+        ...prev,
+        email: "The email or password you entered is incorrect.",
+        password: "The email or password you entered is incorrect.",
+        general: "Please check your credentials and try again."
+      }));
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        general: error.error || "Please sign up first to create an account.",
+      }));
+      if (activeTab === "login") {
+        setActiveTab("signup");
+      }
     }
   };
 
@@ -426,7 +430,7 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     validateMobile,
     validateEmail,
     validatePassword,
-    handleGetOtp,
+    handleRequestOTP,
     handleOtpChange,
     handleOtpKeyDown,
     handleOtpPaste,
@@ -436,6 +440,9 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     handleEmailSignIn,
     handleResend,
     handleBack,
+    clearErrors,
+    activeTab,
+    setActiveTab,
   };
 };
 

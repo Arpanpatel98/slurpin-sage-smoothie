@@ -23,7 +23,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
     validateMobile,
     validateEmail,
     validatePassword,
-    handleGetOtp,
+    handleRequestOTP,
     handleOtpChange,
     handleOtpKeyDown,
     handleOtpPaste,
@@ -52,7 +52,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
       hasErrors = true;
     }
     if (!hasErrors) {
-      await handleGetOtp(false);
+      await handleRequestOTP();
     }
   };
 
@@ -144,7 +144,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 </div>
                 {errors.terms && <div className="error-message">{errors.terms}</div>}
                 <button
-                  onClick={() => handleGetOtp(false)}
+                  onClick={showStep2}
                   className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
                     !agree || loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}

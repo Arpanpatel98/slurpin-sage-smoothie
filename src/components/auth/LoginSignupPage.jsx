@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 import SuccessPopup from "./SuccessPopup";
+import useAuth from "./useAuth";
 import "./loginsignup.css";
 
-const LoginSignupPage = ({ onSuccess }) => {
+const LoginSignupPage = ({ onClose }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("login");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const { setSuccessMessage } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
 
   // Check if the screen is mobile size
@@ -29,19 +32,20 @@ const LoginSignupPage = ({ onSuccess }) => {
   const handleSuccess = (message) => {
     setSuccessMessage(message);
     setShowSuccessPopup(true);
-    // Call the onSuccess callback after a short delay to show the success message
-    setTimeout(() => {
-      if (onSuccess) {
-        onSuccess();
-      }
-    }, 1500);
+  };
+
+  const handleBackToHome = () => {
+    if (onClose) {
+      onClose();
+    }
+    navigate('/');
   };
 
   return (
     <div className="auth-container">
       <SuccessPopup
         isOpen={showSuccessPopup}
-        message={successMessage}
+        message={setSuccessMessage}
         onClose={() => setShowSuccessPopup(false)}
       />
       <div id="recaptcha-container"></div>
@@ -115,7 +119,7 @@ const LoginSignupPage = ({ onSuccess }) => {
               onSuccess={() => handleSuccess("Account created successfully!")}
             />
           )}
-          <div className="back-home">← Back to Home</div>
+          <div className="back-home" onClick={handleBackToHome}>← Back to Home</div>
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
     validateMobile,
     validateEmail,
     validatePassword,
-    handleGetOtp,
+    handleRequestOTP,
     handleOtpChange,
     handleOtpKeyDown,
     handleOtpPaste,
@@ -94,7 +94,7 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                   {errors.mobile && <div className="error-message">{errors.mobile}</div>}
                 </div>
                 <button
-                  onClick={() => handleGetOtp(true)}
+                  onClick={handleRequestOTP}
                   className="w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300"
                 >
                   Get OTP
