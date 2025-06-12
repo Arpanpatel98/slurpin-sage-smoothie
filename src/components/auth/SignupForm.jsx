@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import OtpInput from "./OtpInput";
-import useAuth from "./useAuth";
+import React from "react";
 import { FaPhone, FaEnvelope, FaGoogle } from "react-icons/fa";
+import useAuth from "./useAuth";
 
 const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
   const {
@@ -10,16 +9,16 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
     setMobile,
     otp,
     timer,
-    name,
-    setName,
-    agree,
-    setAgree,
     loading,
     errors,
     email,
     setEmail,
     password,
     setPassword,
+    name,
+    setName,
+    agree,
+    setAgree,
     validateMobile,
     validateEmail,
     validatePassword,
@@ -29,31 +28,20 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
     handleOtpPaste,
     handleVerify,
     handleGoogleSignIn,
-    handleEmailSignUp,
+    handleEmailSignIn,
     handleResend,
     handleBack,
     setErrors,
   } = useAuth(setSuccessMessage, setShowSuccessPopup);
 
-  const [authMethod, setAuthMethod] = useState("phone"); // "phone", "email", or "google"
+  const [authMethod, setAuthMethod] = React.useState("phone");
 
-  const showStep2 = async () => {
-    setErrors((prev) => ({ ...prev, general: "", name: "", mobile: "", terms: "" }));
-    let hasErrors = false;
-    if (!name.trim()) {
-      setErrors((prev) => ({ ...prev, name: "Name is required" }));
-      hasErrors = true;
-    }
-    if (!validateMobile(mobile)) {
-      hasErrors = true;
-    }
+  const showStep2 = () => {
     if (!agree) {
-      setErrors((prev) => ({ ...prev, terms: "You must agree to the terms and conditions" }));
-      hasErrors = true;
+      setErrors({ ...errors, terms: "Please agree to the terms and conditions" });
+      return;
     }
-    if (!hasErrors) {
-      await handleRequestOTP();
-    }
+    handleRequestOTP();
   };
 
   return (
@@ -152,14 +140,52 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                   <p className="text-sm text-gray-500 mb-4">
                     We've sent a 6-digit code to +91 <span className="font-medium">XXXXXXX{mobile.slice(-3)}</span>
                   </p>
-                  <OtpInput
-                    otp={otp}
-                    errors={errors}
-                    loading={loading}
-                    handleOtpChange={handleOtpChange}
-                    handleOtpKeyDown={handleOtpKeyDown}
-                    handleOtpPaste={handleOtpPaste}
-                  />
+                  <div className="otp-input-container">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        maxLength="1"
+                        value={digit}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow numbers
+                          if (/^\d*$/.test(value)) {
+                            handleOtpChange(index, value);
+                            // Auto-focus next input if value is entered
+                            if (value && index < 5) {
+                              const nextInput = document.querySelector(`input[name=otp-${index + 1}]`);
+                              if (nextInput) nextInput.focus();
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Handle backspace
+                          if (e.key === 'Backspace' && !digit && index > 0) {
+                            const prevInput = document.querySelector(`input[name=otp-${index - 1}]`);
+                            if (prevInput) prevInput.focus();
+                          }
+                          handleOtpKeyDown(index, e);
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pastedData = e.clipboardData.getData('text').trim();
+                          if (/^\d{6}$/.test(pastedData)) {
+                            handleOtpPaste(e);
+                            // Focus the last input after pasting
+                            const lastInput = document.querySelector('input[name=otp-5]');
+                            if (lastInput) lastInput.focus();
+                          }
+                        }}
+                        name={`otp-${index}`}
+                        className="otp-input"
+                        disabled={loading}
+                        autoComplete="one-time-code"
+                        inputMode="numeric"
+                        pattern="\d*"
+                      />
+                    ))}
+                  </div>
                   {errors.otp && <div className="error-message">{errors.otp}</div>}
                   <button
                     className={`text-sage-600 text-sm font-medium hover:text-sage-700 ${
@@ -172,7 +198,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                   </button>
                 </div>
                 <button
-                  onClick={() => handleVerify(false, "signup")}
+                  onClick={() => handleVerify(false)}
                   className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
@@ -246,7 +272,7 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
             </div>
             {errors.terms && <div className="error-message">{errors.terms}</div>}
             <button
-              onClick={() => handleEmailSignUp("signup")}
+              onClick={() => handleEmailSignIn(false)}
               className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
                 !agree || loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
@@ -273,31 +299,26 @@ const SignupForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
               />
               {errors.name && <div className="error-message">{errors.name}</div>}
             </div>
-            <div className="flex items-center">
+            <div className="form-checkbox">
               <input
                 type="checkbox"
-                id="agree"
+                id="agree-google"
                 checked={agree}
                 onChange={(e) => setAgree(e.target.checked)}
-                className="form-checkbox"
               />
-              <label htmlFor="agree" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="agree-google">
                 I agree to the Terms and Conditions
               </label>
             </div>
             {errors.terms && <div className="error-message">{errors.terms}</div>}
             <button
-              onClick={() => handleGoogleSignIn(false, "signup")}
+              onClick={() => handleGoogleSignIn(false)}
               className={`w-full bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium border border-gray-300 transition duration-300 flex items-center justify-center space-x-2 ${
                 !agree || loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={!agree || loading}
             >
-              <img
-                src="https://www.google.com/favicon.ico"
-                alt="Google"
-                className="w-5 h-5"
-              />
+              <FaGoogle className="w-5 h-5" />
               <span>{loading ? "Signing up..." : "Continue with Google"}</span>
             </button>
           </div>

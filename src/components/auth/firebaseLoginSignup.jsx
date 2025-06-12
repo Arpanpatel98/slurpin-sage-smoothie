@@ -248,14 +248,7 @@ export const checkPhoneExists = async (phoneNumber) => {
 export const requestOTP = async (phoneNumber, isLogin = false) => {
   try {
     // Clean up any existing reCAPTCHA
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
-    }
-    const containers = document.querySelectorAll('[id^="recaptcha-container-"]');
-    containers.forEach(container => {
-      container.remove();
-    });
+    cleanupRecaptcha();
 
     // Generate new reCAPTCHA instance
     const appVerifier = generateRecaptcha();
@@ -263,22 +256,19 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
       throw new Error('reCAPTCHA not initialized');
     }
 
-    const formattedPhone = `+91${phoneNumber}`; // Assuming Indian phone numbers
+    // Format phone number
+    const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+    
+    // Request OTP
     const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
     window.confirmationResult = confirmationResult;
+    
     return { success: true };
   } catch (error) {
     console.error('Error requesting OTP:', error);
     
     // Clean up on error
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
-    }
-    const containers = document.querySelectorAll('[id^="recaptcha-container-"]');
-    containers.forEach(container => {
-      container.remove();
-    });
+    cleanupRecaptcha();
 
     let errorMessage = 'Failed to send OTP';
     
@@ -294,6 +284,9 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
         break;
       case 'auth/captcha-check-failed':
         errorMessage = 'reCAPTCHA verification failed. Please try again';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection';
         break;
       default:
         errorMessage = error.message || 'Failed to send OTP';
@@ -517,14 +510,13 @@ export const storeUserInfo = async (user, extraData = {}, isNewUser = false) => 
   }
 };
 
-// Cleanup function for reCAPTCHA
+// Cleanup reCAPTCHA
 export const cleanupRecaptcha = () => {
   try {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
       window.recaptchaVerifier = null;
     }
-    // Remove all reCAPTCHA containers
     const containers = document.querySelectorAll('[id^="recaptcha-container-"]');
     containers.forEach(container => {
       container.remove();

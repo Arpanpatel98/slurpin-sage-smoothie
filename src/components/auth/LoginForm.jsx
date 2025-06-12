@@ -32,33 +32,57 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
 
   const [authMethod, setAuthMethod] = useState("phone"); // "phone", "email", or "google"
 
+  const handleAuthMethodChange = (method) => {
+    setAuthMethod(method);
+    // Clear any existing errors when switching methods
+    setErrors({ ...errors, general: "" });
+  };
+
   return (
     <div className="form">
       <div id="loginForm" className="form-container form-visible bg-white shadow-lg rounded-2xl p-8 space-y-8">
         <h2 className="text-3xl font-bold text-sage-800 text-center">Login to Your Account</h2>
-        {errors.general && <div className="error-message">{errors.general}</div>}
+        
+        {/* General Error Message */}
+        {errors.general && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            {errors.general}
+          </div>
+        )}
 
         {/* Authentication Method Selector */}
-        <div className="auth-method-buttons">
+        <div className="flex space-x-4 justify-center">
           <button
-            className={`auth-method-button ${authMethod === "phone" ? "active" : ""}`}
-            onClick={() => setAuthMethod("phone")}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              authMethod === "phone"
+                ? "bg-sage-100 text-sage-800"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+            onClick={() => handleAuthMethodChange("phone")}
           >
-            <FaPhone />
+            <FaPhone className="text-lg" />
             <span>Phone</span>
           </button>
           <button
-            className={`auth-method-button ${authMethod === "email" ? "active" : ""}`}
-            onClick={() => setAuthMethod("email")}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              authMethod === "email"
+                ? "bg-sage-100 text-sage-800"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+            onClick={() => handleAuthMethodChange("email")}
           >
-            <FaEnvelope />
+            <FaEnvelope className="text-lg" />
             <span>Email</span>
           </button>
           <button
-            className={`auth-method-button ${authMethod === "google" ? "active" : ""}`}
-            onClick={() => setAuthMethod("google")}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              authMethod === "google"
+                ? "bg-sage-100 text-sage-800"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+            onClick={() => handleAuthMethodChange("google")}
           >
-            <FaGoogle />
+            <FaGoogle className="text-lg" />
             <span>Google</span>
           </button>
         </div>
@@ -72,20 +96,31 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Mobile Number
                   </label>
-                  <input
-                    type="tel"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="Enter your 10-digit mobile number"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
-                  />
-                  {errors.mobile && <div className="error-message">{errors.mobile}</div>}
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="Enter your 10-digit mobile number"
+                      className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
+                      maxLength={10}
+                    />
+                  </div>
+                  {errors.mobile && (
+                    <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
+                  )}
                 </div>
                 <button
                   onClick={handleRequestOTP}
-                  className="w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300"
+                  disabled={loading}
+                  className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 >
-                  Get OTP
+                  {loading ? "Sending OTP..." : "Get OTP"}
                 </button>
               </div>
             ) : (
@@ -108,7 +143,9 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                     handleOtpKeyDown={handleOtpKeyDown}
                     handleOtpPaste={handleOtpPaste}
                   />
-                  {errors.otp && <div className="error-message">{errors.otp}</div>}
+                  {errors.otp && (
+                    <p className="mt-1 text-sm text-red-600">{errors.otp}</p>
+                  )}
                   <button
                     className={`text-sage-600 text-sm font-medium hover:text-sage-700 ${
                       timer > 0 || loading ? "opacity-50 cursor-not-allowed" : ""
@@ -120,16 +157,17 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                   </button>
                 </div>
                 <button
-                  onClick={() => handleVerify(true, "login")}
+                  onClick={() => handleVerify(true)}
+                  disabled={loading}
                   className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
                     loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
-                  disabled={loading}
                 >
                   {loading ? "Verifying..." : "Verify & Login"}
                 </button>
                 <button
                   onClick={handleBack}
+                  disabled={loading}
                   className="w-full text-gray-600 hover:text-gray-800 py-2"
                 >
                   Back
@@ -153,7 +191,9 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 placeholder="Enter your email address"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
               />
-              {errors.email && <div className="error-message">{errors.email}</div>}
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -166,14 +206,16 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-sage-500"
               />
-              {errors.password && <div className="error-message">{errors.password}</div>}
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
             </div>
             <button
-              onClick={() => handleEmailSignIn("login")}
+              onClick={() => handleEmailSignIn(true)}
+              disabled={loading}
               className={`w-full bg-sage-500 hover:bg-sage-600 text-white py-3 px-4 rounded-lg font-medium transition duration-300 ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              disabled={loading}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
@@ -184,15 +226,18 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
         {authMethod === "google" && (
           <div className="space-y-6">
             <button
-              onClick={() => handleGoogleSignIn(true, "login")}
-              className="w-full bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium border border-gray-300 transition duration-300 flex items-center justify-center space-x-2"
+              onClick={() => handleGoogleSignIn(true)}
+              disabled={loading}
+              className={`w-full bg-white hover:bg-gray-50 text-gray-700 py-3 px-4 rounded-lg font-medium border border-gray-300 transition duration-300 flex items-center justify-center space-x-2 ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               <img
                 src="https://www.google.com/favicon.ico"
                 alt="Google"
                 className="w-5 h-5"
               />
-              <span>Continue with Google</span>
+              <span>{loading ? "Connecting..." : "Continue with Google"}</span>
             </button>
           </div>
         )}

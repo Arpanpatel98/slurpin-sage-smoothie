@@ -36,7 +36,390 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
   const intervalRef = useRef(null);
   const recaptchaRef = useRef(null);
 
-  // Cleanup on component unmount
+  // Validation functions
+  const validateMobile = (number) => {
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!number) {
+      return "Mobile number is required";
+    }
+    if (!mobileRegex.test(number)) {
+      return "Please enter a valid 10-digit mobile number";
+    }
+    return "";
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      return "Email is required";
+    }
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const validatePassword = (password) => {
+    if (!password) {
+      return "Password is required";
+    }
+    if (password.length < 6) {
+      return "Password must be at least 6 characters long";
+    }
+    return "";
+  };
+
+  // Handle OTP request
+  const handleRequestOTP = async () => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, mobile: "", general: "" });
+      
+      const mobileError = validateMobile(mobile);
+      if (mobileError) {
+        setErrors({ ...errors, mobile: mobileError });
+        return;
+      }
+
+      // Check if user exists before sending OTP
+      const result = await requestOTP(mobile);
+      
+      if (result.success) {
+        // If user exists and trying to sign up, show error
+        if (result.userExists && !isLogin) {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          return;
+        }
+        
+        // If user doesn't exist and trying to login, show error
+        if (!result.userExists && isLogin) {
+          setErrors({ 
+            ...errors, 
+            general: "No account found with this number. Please sign up first.",
+            mobile: "This number is not registered. Please sign up instead."
+          });
+          // Switch to signup tab
+          setActiveTab("signup");
+          return;
+        }
+
+        // If all checks pass, proceed with OTP
+        setStep(2);
+        startTimer();
+        setSuccessMessage("OTP sent successfully!");
+        setShowSuccessPopup(true);
+        // Automatically hide the popup after 2 seconds
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+        }, 2000);
+      } else {
+        // Handle specific Firebase errors
+        if (result.error?.code === 'auth/invalid-app-credential') {
+          setErrors({ 
+            ...errors, 
+            general: "Unable to verify your number. Please try again.",
+            mobile: "Please check your number and try again."
+          });
+          // Reset reCAPTCHA
+          cleanupRecaptcha();
+        } else if (result.error?.code === 'auth/too-many-requests') {
+          setErrors({ 
+            ...errors, 
+            general: "Too many attempts. Please try again later.",
+            mobile: "Please wait a few minutes before trying again."
+          });
+        } else if (result.error?.code === 'auth/account-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+        } else {
+          setErrors({ 
+            ...errors, 
+            general: "Failed to send OTP. Please try again.",
+            mobile: "An account with this number already exists. Please use the login tab."
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting OTP:', error);
+      // Handle specific Firebase errors in catch block
+      if (error.code === 'auth/invalid-app-credential') {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to verify your number. Please try again.",
+          mobile: "Please check your number and try again."
+        });
+        // Reset reCAPTCHA
+        cleanupRecaptcha();
+      } else if (error.code === 'auth/too-many-requests') {
+        setErrors({ 
+          ...errors, 
+          general: "Too many attempts. Please try again later.",
+          mobile: "Please wait a few minutes before trying again."
+        });
+      } else if (error.code === 'auth/account-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "An account with this number already exists. Please use the login tab.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+      } else {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to send OTP. Please check your internet connection and try again.",
+          mobile: "Please check your number and try again."
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle OTP verification
+  const handleVerify = async (isLogin = false) => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, otp: "", general: "" });
+
+      const otpString = otp.join("");
+      if (otpString.length !== 6) {
+        setErrors({ ...errors, otp: "Please enter a valid 6-digit OTP" });
+        return;
+      }
+
+      const result = await verifyOTP(otpString, isLogin);
+      
+      if (result.success) {
+        if (result.isNewUser && !isLogin) {
+          setSuccessMessage("Account created successfully!");
+          setShowSuccessPopup(true);
+          // Close popup after 2 seconds only for successful signup
+          setTimeout(() => {
+            setShowSuccessPopup(false);
+          }, 2000);
+        } else if (!result.isNewUser && isLogin) {
+          setSuccessMessage("Logged in successfully!");
+          setShowSuccessPopup(true);
+          // Close popup after 2 seconds only for successful login
+          setTimeout(() => {
+            setShowSuccessPopup(false);
+          }, 2000);
+        }
+      } else {
+        if (result.shouldSignup) {
+          setErrors({ 
+            ...errors, 
+            general: "No account found with this number. Please sign up first.",
+            mobile: "This number is not registered. Please sign up instead."
+          });
+          // Switch to signup tab
+          setActiveTab("signup");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else if (result.shouldLogin || result.error?.code === 'auth/account-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else if (result.error?.code === 'auth/phone-number-already-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "This phone number is already registered. Please sign in instead.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else {
+          setErrors({ 
+            ...errors, 
+            general: result.error || "Verification failed. Please try again.",
+            otp: "Invalid OTP. Please try again."
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      if (error.code === 'auth/account-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "An account with this number already exists. Please use the login tab.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+        // Reset OTP input
+        setOtp(["", "", "", "", "", ""]);
+        // Go back to step 1
+        setStep(1);
+      } else if (error.code === 'auth/phone-number-already-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "This phone number is already registered. Please sign in instead.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+        // Reset OTP input
+        setOtp(["", "", "", "", "", ""]);
+        // Go back to step 1
+        setStep(1);
+      } else {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to verify OTP. Please check your internet connection and try again.",
+          otp: "Verification failed. Please try again."
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle email sign in
+  const handleEmailSignIn = async (isLogin = false) => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, email: "", password: "", general: "" });
+
+      const emailError = validateEmail(email);
+      const passwordError = validatePassword(password);
+
+      if (emailError || passwordError) {
+        setErrors({ ...errors, email: emailError, password: passwordError });
+        return;
+      }
+
+      const result = isLogin 
+        ? await signInWithEmail(email, password)
+        : await signUpWithEmail(email, password, name);
+
+      if (result.success) {
+        setSuccessMessage(isLogin ? "Logged in successfully!" : "Account created successfully!");
+        setShowSuccessPopup(true);
+      } else {
+        setErrors({ ...errors, general: result.error || "Authentication failed. Please try again." });
+      }
+    } catch (error) {
+      setErrors({ 
+        ...errors, 
+        general: "Unable to authenticate. Please check your internet connection and try again." 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Google sign in
+  const handleGoogleSignIn = async (isLogin = false) => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, general: "" });
+
+      const result = await signInWithGoogle(isLogin);
+      
+      if (result.success) {
+        setSuccessMessage(isLogin ? "Logged in successfully!" : "Account created successfully!");
+        setShowSuccessPopup(true);
+      } else {
+        setErrors({ ...errors, general: result.error || "Google sign-in failed. Please try again." });
+      }
+    } catch (error) {
+      setErrors({ 
+        ...errors, 
+        general: "Unable to sign in with Google. Please check your internet connection and try again." 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Timer functions
+  const startTimer = () => {
+    setTimer(40);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    intervalRef.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // OTP input handlers
+  const handleOtpChange = (index, value) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
+      
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.querySelector(`input[name=otp-${index + 1}]`);
+        if (nextInput) nextInput.focus();
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      const prevInput = document.querySelector(`input[name=otp-${index - 1}]`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      setOtp(pastedData.split(""));
+    }
+  };
+
+  // Resend OTP
+  const handleResend = async (isLogin = false) => {
+    if (timer > 0 || loading) return;
+    await handleRequestOTP();
+  };
+
+  // Back button handler
+  const handleBack = () => {
+    setStep(1);
+    setOtp(["", "", "", "", "", ""]);
+    setErrors({ ...errors, otp: "", general: "" });
+    cleanupRecaptcha();
+  };
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupRecaptcha();
@@ -46,18 +429,7 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     };
   }, []);
 
-  // Clear reCAPTCHA when switching auth methods
-  useEffect(() => {
-    cleanupRecaptcha();
-  }, [activeTab]);
-
-  // Clear reCAPTCHA when step changes
-  useEffect(() => {
-    if (step === 1) {
-      cleanupRecaptcha();
-    }
-  }, [step]);
-
+  // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user || null);
@@ -65,354 +437,22 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (step === 2) {
-      setTimer(40);
-      intervalRef.current = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(intervalRef.current);
-  }, [step]);
-
-  const validateMobile = (number) => {
-    if (!number) {
-      setErrors((prev) => ({ ...prev, mobile: "Mobile number is required" }));
-      return false;
-    }
-    if (!/^[0-9]{10}$/.test(number)) {
-      setErrors((prev) => ({ ...prev, mobile: "Please enter a valid 10-digit mobile number" }));
-      return false;
-    }
-    setErrors((prev) => ({ ...prev, mobile: "" }));
-    return true;
-  };
-
-  const validateEmail = (email) => {
-    if (!email) {
-      setErrors((prev) => ({ ...prev, email: "Email is required" }));
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }));
-      return false;
-    }
-    setErrors((prev) => ({ ...prev, email: "" }));
-    return true;
-  };
-
-  const validatePassword = (password) => {
-    if (!password) {
-      setErrors((prev) => ({ ...prev, password: "Password is required" }));
-      return false;
-    }
-    if (password.length < 6) {
-      setErrors((prev) => ({ ...prev, password: "Password must be at least 6 characters long" }));
-      return false;
-    }
-    setErrors((prev) => ({ ...prev, password: "" }));
-    return true;
-  };
-
-  const handleRequestOTP = async () => {
-    clearErrors();
-    if (!validateMobile(mobile)) {
-      setErrors((prev) => ({
-        ...prev,
-        mobile: "Please enter a valid 10-digit mobile number"
-      }));
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Clean up any existing reCAPTCHA before requesting new OTP
-      cleanupRecaptcha();
-      
-      const result = await requestOTP(mobile, activeTab === "login");
-      if (result.success) {
-        setStep(2);
-        setTimer(40);
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error
-        }));
-        cleanupRecaptcha();
-      }
-    } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.message || "Failed to send OTP"
-      }));
-      cleanupRecaptcha();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index, value) => {
-    if (!/^[0-9]?$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    setErrors((prev) => ({ ...prev, otp: "" }));
-
-    if (value && index < 5) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === "Backspace") {
-      e.preventDefault();
-      const newOtp = [...otp];
-      if (newOtp[index]) {
-        newOtp[index] = "";
-        setOtp(newOtp);
-      } else if (index > 0) {
-        newOtp[index - 1] = "";
-        setOtp(newOtp);
-        document.getElementById(`otp-${index - 1}`)?.focus();
-      }
-    } else if (e.key === "ArrowLeft" && index > 0) {
-      e.preventDefault();
-      document.getElementById(`otp-${index - 1}`)?.focus();
-    } else if (e.key === "ArrowRight" && index < 5) {
-      e.preventDefault();
-      document.getElementById(`otp-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").trim();
-    if (!/^\d+$/.test(pastedData)) return;
-
-    const digits = pastedData.slice(0, 6).split("");
-    const newOtp = [...otp];
-    digits.forEach((digit, index) => {
-      if (index < 6) newOtp[index] = digit;
-    });
-    setOtp(newOtp);
-
-    const nextEmptyIndex = newOtp.findIndex((digit) => !digit);
-    if (nextEmptyIndex !== -1 && nextEmptyIndex < 6) {
-      document.getElementById(`otp-${nextEmptyIndex}`)?.focus();
-    } else {
-      document.getElementById(`otp-5`)?.focus();
-    }
-  };
-
-  const handleVerify = async (isLogin) => {
-    clearErrors();
-    if (otp.some((digit) => !digit)) {
-      setErrors((prev) => ({ ...prev, otp: "Please enter the complete OTP" }));
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await verifyOTP(otp.join(""), isLogin);
-      if (result.success) {
-        setUser(result.user);
-        setSuccessMessage(
-          isLogin
-            ? "Welcome back! You have successfully logged in."
-            : "Your account has been created successfully! You are now logged in."
-        );
-        setShowSuccessPopup(true);
-        setOtp(["", "", "", "", "", ""]);
-        setMobile("");
-      } else {
-        handleAuthError(result, true);
-      }
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async (isLogin) => {
-    clearErrors();
-    setLoading(true);
-    try {
-      const result = await signInWithGoogle(isLogin);
-      if (result.success) {
-        setUser(result.user);
-        setSuccessMessage(
-          result.isNewUser
-            ? "Your account has been created successfully with Google! You are now logged in."
-            : "Welcome back! You have successfully logged in with Google."
-        );
-        setShowSuccessPopup(true);
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error
-        }));
-      }
-    } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.message || "An unexpected error occurred during Google authentication."
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSignUp = async () => {
-    setErrors((prev) => ({ ...prev, general: "" }));
-    
-    if (!validateEmail(email) || !validatePassword(password) || !name.trim()) {
-      if (!name.trim()) {
-        setErrors((prev) => ({ ...prev, name: "Name is required" }));
-      }
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await signUpWithEmail(email, password, name);
-      if (result.success) {
-        setUser(result.user);
-        setSuccessMessage("Your account has been created successfully! You are now logged in.");
-        setShowSuccessPopup(true);
-        setEmail("");
-        setPassword("");
-        setName("");
-        setAgree(false);
-      } else {
-        setErrors((prev) => ({
-          ...prev,
-          general: result.error,
-        }));
-        if (result.shouldLogin) {
-          setStep(1);
-        }
-      }
-    } catch (error) {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.message || "An unexpected error occurred during sign up.",
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSignIn = async () => {
-    clearErrors();
-    if (!validateEmail(email) || !validatePassword(password)) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await signInWithEmail(email, password);
-      if (result.success) {
-        setUser(result.user);
-        setSuccessMessage("Welcome back! You have successfully logged in.");
-        setShowSuccessPopup(true);
-        setEmail("");
-        setPassword("");
-      } else {
-        handleAuthError(result, true);
-      }
-    } catch (error) {
-      handleAuthError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setTimer(40);
-    setOtp(["", "", "", "", "", ""]);
-    await handleRequestOTP();
-  };
-
-  const handleBack = () => {
-    setStep(1);
-    setOtp(["", "", "", "", "", ""]);
-    setErrors({ mobile: "", name: "", otp: "", terms: "", general: "", email: "", password: "" });
-    cleanupRecaptcha();
-  };
-
-  const clearErrors = () => {
-    setErrors({
-      mobile: "",
-      name: "",
-      otp: "",
-      terms: "",
-      general: "",
-      email: "",
-      password: "",
-    });
-  };
-
-  const handleAuthError = (error, shouldSwitchTab = false) => {
-    if (error.shouldSignup && activeTab === "login") {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.error || "Please sign up first to create an account.",
-      }));
-      setActiveTab("signup");
-    } else if (error.shouldLogin && activeTab === "signup") {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.error || "An account already exists. Please sign in instead.",
-      }));
-      if (shouldSwitchTab) {
-        setActiveTab("login");
-      }
-    } else if (error.isInvalidCredentials) {
-      setErrors((prev) => ({
-        ...prev,
-        email: "The email or password you entered is incorrect.",
-        password: "The email or password you entered is incorrect.",
-        general: "Please check your credentials and try again."
-      }));
-    } else {
-      setErrors((prev) => ({
-        ...prev,
-        general: error.error || "Please sign up first to create an account.",
-      }));
-      if (activeTab === "login") {
-        setActiveTab("signup");
-      }
-    }
-  };
-
   return {
     step,
-    setStep,
     mobile,
     setMobile,
     otp,
-    setOtp,
     timer,
-    name,
-    setName,
-    agree,
-    setAgree,
     loading,
-    user,
     errors,
-    setErrors,
     email,
     setEmail,
     password,
     setPassword,
+    name,
+    setName,
+    agree,
+    setAgree,
     validateMobile,
     validateEmail,
     validatePassword,
@@ -422,13 +462,10 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     handleOtpPaste,
     handleVerify,
     handleGoogleSignIn,
-    handleEmailSignUp,
     handleEmailSignIn,
     handleResend,
     handleBack,
-    clearErrors,
-    activeTab,
-    setActiveTab,
+    setErrors,
   };
 };
 

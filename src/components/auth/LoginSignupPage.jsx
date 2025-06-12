@@ -8,9 +8,9 @@ import "./loginsignup.css";
 
 const LoginSignupPage = ({ onClose }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("login");
+  const [activeTab, setActiveTab] = useState("signup");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const { setSuccessMessage } = useAuth();
+  const [successMessage, setSuccessMessage] = useState("");
   const [isMobile, setIsMobile] = useState(false);
 
   // Check if the screen is mobile size
@@ -34,7 +34,8 @@ const LoginSignupPage = ({ onClose }) => {
     setShowSuccessPopup(true);
   };
 
-  const handleBackToHome = () => {
+  const handlePopupClose = () => {
+    setShowSuccessPopup(false);
     if (onClose) {
       onClose();
     }
@@ -45,8 +46,8 @@ const LoginSignupPage = ({ onClose }) => {
     <div className="auth-container">
       <SuccessPopup
         isOpen={showSuccessPopup}
-        message={setSuccessMessage}
-        onClose={() => setShowSuccessPopup(false)}
+        message={successMessage}
+        onClose={handlePopupClose}
       />
       <div id="recaptcha-container"></div>
       <div className={`auth-box ${isMobile ? 'mobile-view' : ''}`}>
@@ -97,29 +98,26 @@ const LoginSignupPage = ({ onClose }) => {
         </div>
         <div className="auth-right">
           <div className="auth-tabs">
+          <button
+              className={`auth-tab ${activeTab === "signup" ? "active" : ""}`}
+              onClick={() => setActiveTab("signup")}
+            >
+              Sign Up
+            </button>
             <button
               className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
               onClick={() => setActiveTab("login")}
             >
               Login
             </button>
-            <button
-              className={`auth-tab ${activeTab === "signup" ? "active" : ""}`}
-              onClick={() => setActiveTab("signup")}
-            >
-              Sign Up
-            </button>
+            
           </div>
           {activeTab === "login" ? (
-            <LoginForm
-              onSuccess={() => handleSuccess("Successfully logged in!")}
-            />
+            <LoginForm setSuccessMessage={handleSuccess} setShowSuccessPopup={setShowSuccessPopup} />
           ) : (
-            <SignupForm
-              onSuccess={() => handleSuccess("Account created successfully!")}
-            />
+            <SignupForm setSuccessMessage={handleSuccess} setShowSuccessPopup={setShowSuccessPopup} />
           )}
-          <div className="back-home" onClick={handleBackToHome}>← Back to Home</div>
+          <div className="back-home" onClick={handlePopupClose}>← Back to Home</div>
         </div>
       </div>
     </div>
