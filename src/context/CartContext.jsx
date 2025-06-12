@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { collection, getDocs, setDoc, doc, deleteDoc, serverTimestamp, onSnapshot, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, deleteDoc, serverTimestamp, onSnapshot, getDoc, updateDoc, arrayUnion, arrayRemove, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -15,7 +15,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
-  const [promoCode, setPromoCode] = useState({ code: 'WELCOME10', discount: 3 });
+  const [promoCode, setPromoCode] = useState(null);
   const [showCustomization, setShowCustomization] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [outOfStockItems, setOutOfStockItems] = useState([]);
@@ -176,38 +176,6 @@ export const CartProvider = ({ children }) => {
       if (item.id) {
         const cartItemRef = doc(db, `cart_items/${currentUser.uid}/items`, item.id);
         await setDoc(cartItemRef, { ...itemWithStock, timestamp: serverTimestamp() }, { merge: true });
-        return;
-      }
-
-      // For new items, check if similar item exists
-      const existingItem = cartItems.find(
-        (cartItem) =>
-          cartItem.productId === item.productId &&
-          cartItem.base?.id === item.base?.id &&
-          JSON.stringify(cartItem.toppings) === JSON.stringify(item.toppings) &&
-          JSON.stringify(cartItem.boosters) === JSON.stringify(item.boosters) &&
-          cartItem.specialInstructions === item.specialInstructions
-      );
-
-      if (existingItem) {
-        // Check if adding more would exceed stock
-        const newQuantity = existingItem.quantity + item.quantity;
-        if (newQuantity > currentStock) {
-          throw new Error(`Only ${currentStock} items available in stock`);
-        }
-
-        // Update existing item
-        const newPrice = (Number(item.price) / item.quantity) * newQuantity; // Ensure item.price is a number
-        const updatedItem = {
-          ...itemWithStock,
-          quantity: newQuantity,
-          price: newPrice,
-          customized: true,
-          image: item.image,
-        };
-
-        const cartItemRef = doc(db, `cart_items/${currentUser.uid}/items`, existingItem.id);
-        await setDoc(cartItemRef, { ...updatedItem, timestamp: serverTimestamp() }, { merge: true });
       } else {
         // Check if requested quantity exceeds stock
         if (item.quantity > currentStock) {
@@ -220,6 +188,9 @@ export const CartProvider = ({ children }) => {
         const newItem = { ...itemWithStock, id: cartItemId, customized: true };
         await setDoc(cartItemRef, { ...newItem, timestamp: serverTimestamp() });
       }
+
+      // Validate cart state after adding item
+      validateCartState();
     } catch (err) {
       console.error('Error adding to cart:', err);
       throw err;
@@ -259,11 +230,15 @@ export const CartProvider = ({ children }) => {
         timestamp: serverTimestamp(),
       }, { merge: true });
 
+      // Update cart items state immediately
       setCartItems((prevItems) =>
         prevItems.map((i) =>
           i.id === itemId ? { ...i, quantity: newQuantity, price: newPrice, stock: currentStock } : i
         )
       );
+
+      // Validate cart state after quantity update
+      validateCartState();
     } catch (err) {
       console.error('Error updating quantity:', err);
       throw err;
@@ -278,8 +253,12 @@ export const CartProvider = ({ children }) => {
       await deleteDoc(itemRef);
 
       setCartItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+
+      // Validate cart state after removal
+      validateCartState();
     } catch (err) {
       console.error('Error removing cart item:', err);
+      throw err;
     }
   };
 
@@ -298,11 +277,120 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const applyPromoCode = (code) => {
-    if (code === 'WELCOME10') {
-      setPromoCode({ code, discount: 3 });
-    } else {
+  const validateCouponRequirements = (coupon) => {
+    // Calculate subtotal from cart items
+    const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    // Check minimum purchase requirement
+    if (coupon.minPurchase && subtotal < Number(coupon.minPurchase)) {
+      throw new Error(`Minimum purchase amount of ₹${coupon.minPurchase} required`);
+    }
+
+    // Check minimum items requirement
+    if (coupon.minItems && totalItems < Number(coupon.minItems)) {
+      throw new Error(`Minimum ${coupon.minItems} items required to use this coupon`);
+    }
+
+    // Additional validation for maximum items if specified
+    if (coupon.maxItems && totalItems > Number(coupon.maxItems)) {
+      throw new Error(`Maximum ${coupon.maxItems} items allowed for this coupon`);
+    }
+
+    // Validate that all items are eligible for the coupon
+    if (coupon.eligibleCategories && coupon.eligibleCategories.length > 0) {
+      const hasIneligibleItems = cartItems.some(item => !coupon.eligibleCategories.includes(item.category));
+      if (hasIneligibleItems) {
+        throw new Error('Some items in your cart are not eligible for this coupon');
+      }
+    }
+
+    return true;
+  };
+
+  // Add a function to validate cart state
+  const validateCartState = () => {
+    if (promoCode) {
+      try {
+        validateCouponRequirements({
+          minPurchase: promoCode.requirements?.minPurchase,
+          minItems: promoCode.requirements?.minItems,
+          maxItems: promoCode.requirements?.maxItems,
+          eligibleCategories: promoCode.requirements?.eligibleCategories
+        });
+      } catch (err) {
+        // If validation fails, remove the promo code
+        setPromoCode(null);
+        throw err;
+      }
+    }
+  };
+
+  const applyPromoCode = async (code) => {
+    try {
+      if (!code) {
+        setPromoCode(null);
+        return;
+      }
+
+      // Query the coupons collection
+      const couponsRef = collection(db, 'coupons');
+      const q = query(couponsRef, where('code', '==', code.toUpperCase()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error('Invalid promo code');
+      }
+
+      const coupon = querySnapshot.docs[0].data();
+      const now = new Date();
+
+      // Check if coupon is active
+      if (!coupon.isActive) {
+        throw new Error('This promo code is no longer active');
+      }
+
+      // Check validity period
+      const validFrom = new Date(coupon.validFrom);
+      const validUntil = new Date(coupon.validUntil);
+      if (now < validFrom || now > validUntil) {
+        throw new Error('This promo code is not valid at this time');
+      }
+
+      // Validate coupon requirements
+      validateCouponRequirements(coupon);
+
+      // Calculate subtotal for discount calculation
+      const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+
+      // Calculate discount amount
+      let discountAmount;
+      if (coupon.type === 'percentage') {
+        discountAmount = (subtotal * Number(coupon.discount)) / 100;
+        // Apply maximum discount if set
+        if (coupon.maxDiscount) {
+          discountAmount = Math.min(discountAmount, Number(coupon.maxDiscount));
+        }
+      } else {
+        discountAmount = Number(coupon.discount);
+      }
+
+      setPromoCode({
+        code: coupon.code,
+        discount: discountAmount,
+        type: coupon.type,
+        originalDiscount: coupon.discount,
+        requirements: {
+          minPurchase: coupon.minPurchase,
+          minItems: coupon.minItems,
+          maxItems: coupon.maxItems,
+          eligibleCategories: coupon.eligibleCategories
+        }
+      });
+    } catch (err) {
+      console.error('Error applying promo code:', err);
       setPromoCode(null);
+      throw err;
     }
   };
 
@@ -311,12 +399,12 @@ export const CartProvider = ({ children }) => {
     const addIns = cartItems.reduce(
       (sum, item) =>
         sum +
-        item.toppings.reduce((t, topping) => t + topping.price, 0) +
-        item.boosters.reduce((b, booster) => b + booster.price, 0),
+        (item.toppings?.reduce((t, topping) => t + (topping.price || 0), 0) || 0) +
+        (item.boosters?.reduce((b, booster) => b + (booster.price || 0), 0) || 0),
       0
     );
     const discount = promoCode ? promoCode.discount : 0;
-    const tax = subtotal * 0.0875;
+    const tax = (subtotal + addIns - discount) * 0.0875; // Calculate tax after discount
     const total = subtotal + addIns + tax - discount;
 
     return { subtotal, addIns, discount, tax, total };
@@ -368,7 +456,8 @@ export const CartProvider = ({ children }) => {
     checkStockStatus,
     outOfStockItems,
     isCheckingStock,
-    checkAndUpdateCartStock
+    checkAndUpdateCartStock,
+    validateCouponRequirements
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

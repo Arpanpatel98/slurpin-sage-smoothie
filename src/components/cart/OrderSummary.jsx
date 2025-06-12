@@ -6,6 +6,8 @@ const OrderSummary = ({ onProceedToCheckout }) => {
   const [inputCode, setInputCode] = useState(promoCode?.code || '');
   const [isCheckingStock, setIsCheckingStock] = useState(false);
   const [hasOutOfStock, setHasOutOfStock] = useState(false);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState(null);
   const { subtotal, addIns, discount, tax, total } = calculateTotals();
 
   useEffect(() => {
@@ -18,8 +20,21 @@ const OrderSummary = ({ onProceedToCheckout }) => {
     checkStock();
   }, [cartItems]);
 
-  const handleApplyPromo = () => {
-    applyPromoCode(inputCode);
+  const handleApplyPromo = async () => {
+    if (!inputCode.trim()) {
+      setPromoError('Please enter a promo code');
+      return;
+    }
+
+    try {
+      setIsApplyingPromo(true);
+      setPromoError(null);
+      await applyPromoCode(inputCode);
+    } catch (err) {
+      setPromoError(err.message);
+    } finally {
+      setIsApplyingPromo(false);
+    }
   };
 
   const handleProceedToCheckout = async () => {
@@ -76,20 +91,37 @@ const OrderSummary = ({ onProceedToCheckout }) => {
             <input
               type="text"
               value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
+              onChange={(e) => {
+                setInputCode(e.target.value);
+                setPromoError(null);
+              }}
               placeholder="Enter promo code"
               className="promo_input_ordersummary"
+              disabled={isApplyingPromo}
             />
-            <button onClick={handleApplyPromo} className="promo_button_ordersummary">
-              Apply
+            <button 
+              onClick={handleApplyPromo} 
+              className="promo_button_ordersummary"
+              disabled={isApplyingPromo}
+            >
+              {isApplyingPromo ? 'Applying...' : 'Apply'}
             </button>
           </div>
-          {promoCode && (
+          {promoError && (
+            <div className="promo_error_ordersummary">
+              {/* <svg className="promo_error_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg> */}
+              {promoError}
+            </div>
+          )}
+          {promoCode && !promoError && (
             <div className="promo_success_ordersummary">
               <svg className="promo_success_icon_ordersummary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
               </svg>
               Promo code {promoCode.code} applied!
+              {promoCode.type === 'percentage' && ` (${promoCode.originalDiscount}% off)`}
             </div>
           )}
         </div>

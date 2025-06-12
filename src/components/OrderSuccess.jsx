@@ -11,7 +11,6 @@ const OrderSuccess = () => {
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-6">
           <svg
-            className="w-16 h-16 text-[#137B3B] mx-auto"
             className="w-16 h-16 text-green-500 mx-auto"
             fill="none"
             stroke="currentColor"

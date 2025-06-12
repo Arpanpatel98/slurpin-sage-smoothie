@@ -10,6 +10,7 @@ import OrderDetails from './OrderDetails';
 import AdminProducts from './AdminProducts';
 import EditProduct from './EditProduct';
 import AddProduct from './AddProduct';
+import AdminCoupons from './AdminCoupons';
 import './AdminLayout.css';
 
 const AdminLayout = () => {
@@ -206,6 +207,16 @@ const AdminLayout = () => {
               </svg>
               <span className="sidebar-text">Products</span>
             </Link>
+            <Link
+              to="/admin/coupons"
+              className={`sidebar-link ${isActive('/admin/coupons') ? 'active' : ''}`}
+              onClick={closeSidebar}
+            >
+              <svg className="sidebar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+              <span className="sidebar-text">Coupons</span>
+            </Link>
             {/* <Link
               to="/admin/analytics"
               className={`sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
@@ -267,6 +278,7 @@ const AdminLayout = () => {
             <Route path="/products" element={<AdminProducts />} />
             <Route path="/products/add" element={<AddProduct />} />
             <Route path="/products/edit/:category/:id" element={<EditProduct />} />
+            <Route path="/coupons" element={<AdminCoupons />} />
             {/* Add other routes as needed */}
           </Routes>
         </div>

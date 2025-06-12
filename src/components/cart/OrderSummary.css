@@ -1,0 +1,39 @@
+.promo_error_ordersummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #fee2e2;
+  border-radius: 4px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.promo_error_icon_ordersummary {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.promo_button_ordersummary:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.promo_input_ordersummary:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 
