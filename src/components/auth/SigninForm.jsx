@@ -2,7 +2,7 @@ import React from "react";
 import { FaEnvelope, FaGoogle } from "react-icons/fa";
 import useAuth from "./useAuth";
 
-const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
+const SigninForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
   const {
     loading,
     errors,
@@ -124,4 +124,4 @@ const LoginForm = ({ setSuccessMessage, setShowSuccessPopup }) => {
   );
 };
 
-export default LoginForm;
+export default SigninForm; 

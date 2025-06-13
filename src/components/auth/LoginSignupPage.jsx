@@ -8,7 +8,7 @@ import "./loginsignup.css";
 
 const LoginSignupPage = ({ onClose }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("signup");
+  const [activeTab, setActiveTab] = useState("login");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -99,17 +99,18 @@ const LoginSignupPage = ({ onClose }) => {
         <div className="auth-right">
           <div className="auth-tabs">
           <button
-              className={`auth-tab ${activeTab === "signup" ? "active" : ""}`}
-              onClick={() => setActiveTab("signup")}
-            >
-              Sign Up
-            </button>
-            <button
               className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
               onClick={() => setActiveTab("login")}
             >
               Login
             </button>
+          <button
+              className={`auth-tab ${activeTab === "signup" ? "active" : ""}`}
+              onClick={() => setActiveTab("signup")}
+            >
+              Sign Up
+            </button>
+            
             
           </div>
           {activeTab === "login" ? (
