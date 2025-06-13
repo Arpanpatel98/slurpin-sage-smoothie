@@ -206,35 +206,30 @@ export const checkPhoneExists = async (phoneNumber) => {
     const formattedPhone = `+91${phoneNumber}`;
     
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      // If we get here without error, the number is valid for sending OTPs
-      // For checking existence, we need to save this for later verification
-      window.tempConfirmationResult = confirmationResult;
-      
-      // Check if the phone number is associated with any user
-      // Use the information from the confirmation to determine this
-      const phoneAuthProvider = confirmationResult.verificationId ? true : false;
-      
-      console.log('Phone verification sent', { 
-        phoneNumber, 
-        hasVerificationId: !!confirmationResult.verificationId
-      });
-      
-      return { 
-        // We'll assume the actual verification will determine if user exists
-        exists: false,
-        hasAuthProvider: phoneAuthProvider,
-        confirmationSent: true
-      };
-    } catch (error) {
-      // If we get an error sending OTP, check if it's because the number is invalid
-      if (error.code === 'auth/invalid-phone-number') {
-        return { exists: false, error: "Invalid phone number format" };
+      // First check if the number is already registered
+      const userCredential = await auth.signInWithPhoneNumber(formattedPhone, appVerifier);
+      if (userCredential.user) {
+        return { 
+          exists: true,
+          error: "This phone number is already registered. Please sign in instead."
+        };
       }
-      
-      // Other errors might indicate a problem with the service
-      return { exists: false, error: error.message };
+    } catch (error) {
+      // If we get an error, check if it's because the number is already registered
+      if (error.code === 'auth/phone-number-already-in-use' || 
+          error.code === 'auth/account-exists-with-different-credential') {
+        return { 
+          exists: true,
+          error: "This phone number is already registered. Please sign in instead."
+        };
+      }
     }
+
+    // If we get here, the number is not registered
+    return { 
+      exists: false,
+      error: null
+    };
   } catch (error) {
     console.error('Error checking phone existence:', error);
     return { 
@@ -259,11 +254,25 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
     // Format phone number
     const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
     
+    // If this is a signup attempt, check if the number already exists
+    if (!isLogin) {
+      const checkResult = await checkPhoneExists(phoneNumber);
+      if (checkResult.exists) {
+        return {
+          success: false,
+          error: checkResult.error || "This phone number is already registered. Please sign in instead.",
+          code: 'auth/phone-number-already-in-use'
+        };
+      }
+    }
+    
     // Request OTP
     const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-    window.confirmationResult = confirmationResult;
     
-    return { success: true };
+    return { 
+      success: true,
+      confirmationResult 
+    };
   } catch (error) {
     console.error('Error requesting OTP:', error);
     
@@ -271,6 +280,7 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
     cleanupRecaptcha();
 
     let errorMessage = 'Failed to send OTP';
+    let errorCode = error.code;
     
     switch (error.code) {
       case 'auth/invalid-phone-number':
@@ -288,6 +298,11 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
       case 'auth/network-request-failed':
         errorMessage = 'Network error. Please check your internet connection';
         break;
+      case 'auth/phone-number-already-in-use':
+      case 'auth/account-exists-with-different-credential':
+        errorMessage = 'This phone number is already registered. Please sign in instead';
+        errorCode = 'auth/phone-number-already-in-use';
+        break;
       default:
         errorMessage = error.message || 'Failed to send OTP';
     }
@@ -295,7 +310,7 @@ export const requestOTP = async (phoneNumber, isLogin = false) => {
     return { 
       success: false, 
       error: errorMessage,
-      code: error.code
+      code: errorCode
     };
   }
 };

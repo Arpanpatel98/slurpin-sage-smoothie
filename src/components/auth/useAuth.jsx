@@ -74,114 +74,63 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     try {
       setLoading(true);
       setErrors({ ...errors, mobile: "", general: "" });
-      
+
+      // Validate mobile number
       const mobileError = validateMobile(mobile);
       if (mobileError) {
         setErrors({ ...errors, mobile: mobileError });
+        setLoading(false);
         return;
       }
 
-      // Check if user exists before sending OTP
-      const result = await requestOTP(mobile);
-      
-      if (result.success) {
-        // If user exists and trying to sign up, show error
-        if (result.userExists && !isLogin) {
-          setErrors({ 
-            ...errors, 
-            general: "An account with this number already exists. Please use the login tab.",
-            mobile: "This number is already registered. Please sign in instead."
-          });
-          // Switch to login tab
-          setActiveTab("login");
-          return;
-        }
-        
-        // If user doesn't exist and trying to login, show error
-        if (!result.userExists && isLogin) {
-          setErrors({ 
-            ...errors, 
-            general: "No account found with this number. Please sign up first.",
-            mobile: "This number is not registered. Please sign up instead."
-          });
-          // Switch to signup tab
-          setActiveTab("signup");
-          return;
-        }
+      // Request OTP
+      const result = await requestOTP(mobile, activeTab === "login");
 
-        // If all checks pass, proceed with OTP
+      if (result.success) {
+        window.confirmationResult = result.confirmationResult;
         setStep(2);
         startTimer();
-        setSuccessMessage("OTP sent successfully!");
-        setShowSuccessPopup(true);
-        // Automatically hide the popup after 2 seconds
-        setTimeout(() => {
-          setShowSuccessPopup(false);
-        }, 2000);
       } else {
-        // Handle specific Firebase errors
-        if (result.error?.code === 'auth/invalid-app-credential') {
+        // Handle specific error cases
+        if (result.code === 'auth/phone-number-already-in-use' || 
+            result.code === 'auth/account-exists-with-different-credential') {
           setErrors({ 
             ...errors, 
-            general: "Unable to verify your number. Please try again.",
-            mobile: "Please check your number and try again."
-          });
-          // Reset reCAPTCHA
-          cleanupRecaptcha();
-        } else if (result.error?.code === 'auth/too-many-requests') {
-          setErrors({ 
-            ...errors, 
-            general: "Too many attempts. Please try again later.",
-            mobile: "Please wait a few minutes before trying again."
-          });
-        } else if (result.error?.code === 'auth/account-exists') {
-          setErrors({ 
-            ...errors, 
-            general: "An account with this number already exists. Please use the login tab.",
+            general: "This phone number is already registered. Please sign in instead.",
             mobile: "This number is already registered. Please sign in instead."
           });
           // Switch to login tab
           setActiveTab("login");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else if (result.code === 'auth/invalid-phone-number') {
+          setErrors({ 
+            ...errors, 
+            mobile: "Please enter a valid phone number"
+          });
+        } else if (result.code === 'auth/too-many-requests') {
+          setErrors({ 
+            ...errors, 
+            general: "Too many attempts. Please try again later",
+            mobile: "Please wait a few minutes before trying again"
+          });
         } else {
           setErrors({ 
             ...errors, 
-            general: "Failed to send OTP. Please try again.",
-            mobile: "An account with this number already exists. Please use the login tab."
+            general: result.error || "Failed to send OTP. Please try again.",
+            mobile: result.error || "Failed to send OTP. Please try again."
           });
         }
       }
     } catch (error) {
       console.error('Error requesting OTP:', error);
-      // Handle specific Firebase errors in catch block
-      if (error.code === 'auth/invalid-app-credential') {
-        setErrors({ 
-          ...errors, 
-          general: "Unable to verify your number. Please try again.",
-          mobile: "Please check your number and try again."
-        });
-        // Reset reCAPTCHA
-        cleanupRecaptcha();
-      } else if (error.code === 'auth/too-many-requests') {
-        setErrors({ 
-          ...errors, 
-          general: "Too many attempts. Please try again later.",
-          mobile: "Please wait a few minutes before trying again."
-        });
-      } else if (error.code === 'auth/account-exists') {
-        setErrors({ 
-          ...errors, 
-          general: "An account with this number already exists. Please use the login tab.",
-          mobile: "This number is already registered. Please sign in instead."
-        });
-        // Switch to login tab
-        setActiveTab("login");
-      } else {
-        setErrors({ 
-          ...errors, 
-          general: "Unable to send OTP. Please check your internet connection and try again.",
-          mobile: "Please check your number and try again."
-        });
-      }
+      setErrors({ 
+        ...errors, 
+        general: "Failed to send OTP. Please try again.",
+        mobile: "Failed to send OTP. Please try again."
+      });
     } finally {
       setLoading(false);
     }
