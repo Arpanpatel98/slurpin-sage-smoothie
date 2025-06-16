@@ -98,7 +98,7 @@ const LoginSignupPage = ({ onClose }) => {
         </div>
         <div className="auth-right">
           <div className="auth-tabs">
-          <button
+            <button
               className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
               onClick={() => setActiveTab("login")}
             >

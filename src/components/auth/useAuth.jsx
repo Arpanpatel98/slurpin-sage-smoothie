@@ -1,224 +1,448 @@
-import { useState } from "react";
-import { auth } from "./firebaseLoginSignup";
+import { useState, useEffect, useRef } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  updateProfile,
-} from "firebase/auth";
+  auth,
+  generateRecaptcha,
+  requestOTP,
+  verifyOTP,
+  signInWithGoogle,
+  storeUserInfo,
+  signUpWithEmail,
+  signInWithEmail,
+  cleanupRecaptcha,
+} from "./firebaseLoginSignup";
 
 const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [step, setStep] = useState(1);
+  const [mobile, setMobile] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [timer, setTimer] = useState(40);
   const [name, setName] = useState("");
   const [agree, setAgree] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({
+    mobile: "",
+    name: "",
+    otp: "",
+    terms: "",
+    general: "",
+    email: "",
+    password: "",
+  });
+  const [activeTab, setActiveTab] = useState("login");
+  const intervalRef = useRef(null);
+  const recaptchaRef = useRef(null);
+
+  // Validation functions
+  const validateMobile = (number) => {
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!number) {
+      return "Mobile number is required";
+    }
+    if (!mobileRegex.test(number)) {
+      return "Please enter a valid 10-digit mobile number";
+    }
+    return "";
+  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
-      setErrors((prev) => ({ ...prev, email: "Please enter your email address" }));
-      return false;
+      return "Email is required";
     }
     if (!emailRegex.test(email)) {
-      setErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }));
-      return false;
+      return "Please enter a valid email address";
     }
-    setErrors((prev) => ({ ...prev, email: "" }));
-    return true;
+    return "";
   };
 
   const validatePassword = (password) => {
     if (!password) {
-      setErrors((prev) => ({ ...prev, password: "Please enter your password" }));
-      return false;
+      return "Password is required";
     }
     if (password.length < 6) {
-      setErrors((prev) => ({
-        ...prev,
-        password: "Password must be at least 6 characters long",
-      }));
-      return false;
+      return "Password must be at least 6 characters long";
     }
-    setErrors((prev) => ({ ...prev, password: "" }));
-    return true;
+    return "";
   };
 
-  const validateName = (name) => {
-    if (!name) {
-      setErrors((prev) => ({ ...prev, name: "Please enter your name" }));
-      return false;
-    }
-    if (name.length < 2) {
-      setErrors((prev) => ({
-        ...prev,
-        name: "Name must be at least 2 characters long",
-      }));
-      return false;
-    }
-    setErrors((prev) => ({ ...prev, name: "" }));
-    return true;
-  };
-
-  const handleEmailSignUp = async () => {
+  // Handle OTP request
+  const handleRequestOTP = async () => {
     try {
       setLoading(true);
-      setErrors({});
-
-      // Validate inputs
-      const isEmailValid = validateEmail(email);
-      const isPasswordValid = validatePassword(password);
-      const isNameValid = validateName(name);
-
-      if (!isEmailValid || !isPasswordValid || !isNameValid) {
-        setLoading(false);
+      setErrors({ ...errors, mobile: "", general: "" });
+      
+      const mobileError = validateMobile(mobile);
+      if (mobileError) {
+        setErrors({ ...errors, mobile: mobileError });
         return;
       }
 
-      if (!agree) {
-        setErrors((prev) => ({
-          ...prev,
-          terms: "Please agree to the terms and conditions to continue",
-        }));
-        setLoading(false);
+      // Check if user exists before sending OTP
+      const result = await requestOTP(mobile);
+      
+      if (result.success) {
+        // If user exists and trying to sign up, show error
+        if (result.userExists && !isLogin) {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          return;
+        }
+        
+        // If user doesn't exist and trying to login, show error
+        if (!result.userExists && isLogin) {
+          setErrors({ 
+            ...errors, 
+            general: "No account found with this number. Please sign up first.",
+            mobile: "This number is not registered. Please sign up instead."
+          });
+          // Switch to signup tab
+          setActiveTab("signup");
+          return;
+        }
+
+        // If all checks pass, proceed with OTP
+        setStep(2);
+        startTimer();
+        setSuccessMessage("OTP sent successfully!");
+        setShowSuccessPopup(true);
+        // Automatically hide the popup after 2 seconds
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+        }, 2000);
+      } else {
+        // Handle specific Firebase errors
+        if (result.error?.code === 'auth/invalid-app-credential') {
+          setErrors({ 
+            ...errors, 
+            general: "Unable to verify your number. Please try again.",
+            mobile: "Please check your number and try again."
+          });
+          // Reset reCAPTCHA
+          cleanupRecaptcha();
+        } else if (result.error?.code === 'auth/too-many-requests') {
+          setErrors({ 
+            ...errors, 
+            general: "Too many attempts. Please try again later.",
+            mobile: "Please wait a few minutes before trying again."
+          });
+        } else if (result.error?.code === 'auth/account-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+        } else {
+          setErrors({ 
+            ...errors, 
+            general: "Failed to send OTP. Please try again.",
+            mobile: "An account with this number already exists. Please use the login tab."
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting OTP:', error);
+      // Handle specific Firebase errors in catch block
+      if (error.code === 'auth/invalid-app-credential') {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to verify your number. Please try again.",
+          mobile: "Please check your number and try again."
+        });
+        // Reset reCAPTCHA
+        cleanupRecaptcha();
+      } else if (error.code === 'auth/too-many-requests') {
+        setErrors({ 
+          ...errors, 
+          general: "Too many attempts. Please try again later.",
+          mobile: "Please wait a few minutes before trying again."
+        });
+      } else if (error.code === 'auth/account-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "An account with this number already exists. Please use the login tab.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+      } else {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to send OTP. Please check your internet connection and try again.",
+          mobile: "Please check your number and try again."
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle OTP verification
+  const handleVerify = async (isLogin = false) => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, otp: "", general: "" });
+
+      const otpString = otp.join("");
+      if (otpString.length !== 6) {
+        setErrors({ ...errors, otp: "Please enter a valid 6-digit OTP" });
         return;
       }
 
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const result = await verifyOTP(otpString, isLogin);
+      
+      if (result.success) {
+        if (result.isNewUser && !isLogin) {
+          setSuccessMessage("Account created successfully!");
+          setShowSuccessPopup(true);
+          // Close popup after 2 seconds only for successful signup
+          setTimeout(() => {
+            setShowSuccessPopup(false);
+          }, 2000);
+        } else if (!result.isNewUser && isLogin) {
+          setSuccessMessage("Logged in successfully!");
+          setShowSuccessPopup(true);
+          // Close popup after 2 seconds only for successful login
+          setTimeout(() => {
+            setShowSuccessPopup(false);
+          }, 2000);
+        }
+      } else {
+        if (result.shouldSignup) {
+          setErrors({ 
+            ...errors, 
+            general: "No account found with this number. Please sign up first.",
+            mobile: "This number is not registered. Please sign up instead."
+          });
+          // Switch to signup tab
+          setActiveTab("signup");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else if (result.shouldLogin || result.error?.code === 'auth/account-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "An account with this number already exists. Please use the login tab.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else if (result.error?.code === 'auth/phone-number-already-exists') {
+          setErrors({ 
+            ...errors, 
+            general: "This phone number is already registered. Please sign in instead.",
+            mobile: "This number is already registered. Please sign in instead."
+          });
+          // Switch to login tab
+          setActiveTab("login");
+          // Reset OTP input
+          setOtp(["", "", "", "", "", ""]);
+          // Go back to step 1
+          setStep(1);
+        } else {
+          setErrors({ 
+            ...errors, 
+            general: result.error || "Verification failed. Please try again.",
+            otp: "Invalid OTP. Please try again."
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      if (error.code === 'auth/account-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "An account with this number already exists. Please use the login tab.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+        // Reset OTP input
+        setOtp(["", "", "", "", "", ""]);
+        // Go back to step 1
+        setStep(1);
+      } else if (error.code === 'auth/phone-number-already-exists') {
+        setErrors({ 
+          ...errors, 
+          general: "This phone number is already registered. Please sign in instead.",
+          mobile: "This number is already registered. Please sign in instead."
+        });
+        // Switch to login tab
+        setActiveTab("login");
+        // Reset OTP input
+        setOtp(["", "", "", "", "", ""]);
+        // Go back to step 1
+        setStep(1);
+      } else {
+        setErrors({ 
+          ...errors, 
+          general: "Unable to verify OTP. Please check your internet connection and try again.",
+          otp: "Verification failed. Please try again."
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Update user profile with name
-      await updateProfile(userCredential.user, {
-        displayName: name,
+  // Handle email sign in
+  const handleEmailSignIn = async (isLogin = false) => {
+    try {
+      setLoading(true);
+      setErrors({ ...errors, email: "", password: "", general: "" });
+
+      const emailError = validateEmail(email);
+      const passwordError = validatePassword(password);
+
+      if (emailError || passwordError) {
+        setErrors({ ...errors, email: emailError, password: passwordError });
+        return;
+      }
+
+      const result = isLogin 
+        ? await signInWithEmail(email, password)
+        : await signUpWithEmail(email, password, name);
+
+      if (result.success) {
+        setSuccessMessage(isLogin ? "Logged in successfully!" : "Account created successfully!");
+        setShowSuccessPopup(true);
+      } else {
+        setErrors({ ...errors, general: result.error || "Authentication failed. Please try again." });
+      }
+    } catch (error) {
+      setErrors({ 
+        ...errors, 
+        general: "Unable to authenticate. Please check your internet connection and try again." 
       });
-
-      setSuccessMessage("Welcome! Your account has been created successfully.");
-      setShowSuccessPopup(true);
-    } catch (error) {
-      console.error("Error signing up:", error);
-      let errorMessage = "Something went wrong. Please try again.";
-
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          errorMessage = "This email is already registered. Please sign in instead.";
-          break;
-        case "auth/invalid-email":
-          errorMessage = "Please enter a valid email address.";
-          break;
-        case "auth/weak-password":
-          errorMessage = "Please choose a stronger password (at least 6 characters with letters, numbers, and symbols).";
-          break;
-        case "auth/network-request-failed":
-          errorMessage = "Please check your internet connection and try again.";
-          break;
-        case "auth/too-many-requests":
-          errorMessage = "Too many attempts. Please try again later.";
-          break;
-        default:
-          errorMessage = "Unable to create account. Please try again.";
-      }
-
-      setErrors((prev) => ({ ...prev, general: errorMessage }));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailSignIn = async () => {
+  // Handle Google sign in
+  const handleGoogleSignIn = async (isLogin = false) => {
     try {
       setLoading(true);
-      setErrors({});
+      setErrors({ ...errors, general: "" });
 
-      // Validate inputs
-      const isEmailValid = validateEmail(email);
-      const isPasswordValid = validatePassword(password);
-
-      if (!isEmailValid || !isPasswordValid) {
-        setLoading(false);
-        return;
+      const result = await signInWithGoogle(isLogin);
+      
+      if (result.success) {
+        setSuccessMessage(isLogin ? "Logged in successfully!" : "Account created successfully!");
+        setShowSuccessPopup(true);
+      } else {
+        setErrors({ ...errors, general: result.error || "Google sign-in failed. Please try again." });
       }
-
-      await signInWithEmailAndPassword(auth, email, password);
-      setSuccessMessage("Welcome back! You've signed in successfully.");
-      setShowSuccessPopup(true);
     } catch (error) {
-      console.error("Error signing in:", error);
-      let errorMessage = "Something went wrong. Please try again.";
-
-      switch (error.code) {
-        case "auth/user-not-found":
-          errorMessage = "No account found with this email. Please sign up first.";
-          break;
-        case "auth/wrong-password":
-          errorMessage = "Incorrect password. Please try again.";
-          break;
-        case "auth/invalid-email":
-          errorMessage = "Please enter a valid email address.";
-          break;
-        case "auth/user-disabled":
-          errorMessage = "This account has been disabled. Please contact support.";
-          break;
-        case "auth/too-many-requests":
-          errorMessage = "Too many failed attempts. Please try again later or reset your password.";
-          break;
-        case "auth/network-request-failed":
-          errorMessage = "Please check your internet connection and try again.";
-          break;
-        default:
-          errorMessage = "Unable to sign in. Please check your credentials and try again.";
-      }
-
-      setErrors((prev) => ({ ...prev, general: errorMessage }));
+      setErrors({ 
+        ...errors, 
+        general: "Unable to sign in with Google. Please check your internet connection and try again." 
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setLoading(true);
-      setErrors({});
+  // Timer functions
+  const startTimer = () => {
+    setTimer(40);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    intervalRef.current = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      setSuccessMessage("Welcome! You've signed in successfully with Google.");
-      setShowSuccessPopup(true);
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
-      let errorMessage = "Something went wrong. Please try again.";
-
-      switch (error.code) {
-        case "auth/popup-blocked":
-          errorMessage = "Please allow popups for this website to sign in with Google.";
-          break;
-        case "auth/popup-closed-by-user":
-          errorMessage = "Sign in was cancelled. Please try again.";
-          break;
-        case "auth/cancelled-popup-request":
-          errorMessage = "Sign in was cancelled. Please try again.";
-          break;
-        case "auth/network-request-failed":
-          errorMessage = "Please check your internet connection and try again.";
-          break;
-        case "auth/account-exists-with-different-credential":
-          errorMessage = "An account already exists with this email. Please sign in with your original method.";
-          break;
-        default:
-          errorMessage = "Unable to sign in with Google. Please try again.";
+  // OTP input handlers
+  const handleOtpChange = (index, value) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
+      
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.querySelector(`input[name=otp-${index + 1}]`);
+        if (nextInput) nextInput.focus();
       }
-
-      setErrors((prev) => ({ ...prev, general: errorMessage }));
-    } finally {
-      setLoading(false);
     }
   };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      const prevInput = document.querySelector(`input[name=otp-${index - 1}]`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      setOtp(pastedData.split(""));
+    }
+  };
+
+  // Resend OTP
+  const handleResend = async (isLogin = false) => {
+    if (timer > 0 || loading) return;
+    await handleRequestOTP();
+  };
+
+  // Back button handler
+  const handleBack = () => {
+    setStep(1);
+    setOtp(["", "", "", "", "", ""]);
+    setErrors({ ...errors, otp: "", general: "" });
+    cleanupRecaptcha();
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupRecaptcha();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
+  // Auth state listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user || null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return {
+    step,
+    mobile,
+    setMobile,
+    otp,
+    timer,
     loading,
     errors,
     email,
@@ -229,12 +453,19 @@ const useAuth = (setSuccessMessage, setShowSuccessPopup) => {
     setName,
     agree,
     setAgree,
+    validateMobile,
     validateEmail,
     validatePassword,
-    validateName,
-    handleEmailSignUp,
-    handleEmailSignIn,
+    handleRequestOTP,
+    handleOtpChange,
+    handleOtpKeyDown,
+    handleOtpPaste,
+    handleVerify,
     handleGoogleSignIn,
+    handleEmailSignIn,
+    handleResend,
+    handleBack,
+    setErrors,
   };
 };
 

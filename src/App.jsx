@@ -9,6 +9,7 @@ import ContactForm from './components/ContactForm';
 // import ItemDec from './pages/itemdec/itemdec';
 import ProductPage from './pages/item_dec';
 // import Checkout from './pages/Checkout';
+// import TermsAndConditions from './components/PolicyPage.jsx';
 
 import Home from './pages/Home';
 import { CartProvider } from './context/CartContext';
@@ -19,6 +20,10 @@ import OrderSuccess from './components/OrderSuccess';
 import OrderHistory from './pages/OrderHistory';
 import AdminLayout from './pages/admin/AdminLayout';
 import './App.css';
+import TermsAndConditions from './components/TermsAndConditions';
+import CancellationRefundPolicy from './components/CancellationRefundPolicy';
+import ShippingDeliveryPolicy from './components/ShippingDeliveryPolicy';
+import PrivacyPolicy from './components/PrivacyPolicy';
 
 // Add MainLayout component
 const MainLayout = ({ children }) => {
@@ -92,6 +97,10 @@ function App() {
                 <OrderHistory />
               </MainLayout>
             } />
+            <Route path="/terms" element={<TermsAndConditions />} />
+          <Route path="/cancellation-refund" element={<CancellationRefundPolicy />} />
+          <Route path="/shipping-delivery" element={<ShippingDeliveryPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
         </div>
       </Router>

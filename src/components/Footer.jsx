@@ -36,6 +36,7 @@ function Footer() {
               <li><Link to="/about">About</Link></li>
               <li><Link to="/menu">Menu</Link></li>
               <li><Link to="/contact">Contact</Link></li>
+              {/* <li><Link to="/signup">Sign Up</Link></li> */}
             </ul>
           </div>
 
@@ -43,13 +44,13 @@ function Footer() {
             <h4>Contact Us</h4>
             <ul className="contact-info">
               <li>
-                <FontAwesomeIcon icon={faMapMarkerAlt} /> 123 Green Street, Healthy City, HC 12345
+                <FontAwesomeIcon icon={faMapMarkerAlt} />2081, 16C main 1st floor HAL 2nd stage Kodihalli, Indiranagar 560008
               </li>
               <li>
-                <FontAwesomeIcon icon={faPhone} /> (555) 123-4567
+                <FontAwesomeIcon icon={faPhone} />  +91 8347459583
               </li>
               <li>
-                <FontAwesomeIcon icon={faEnvelope} /> info@slurpinsage.com
+                <FontAwesomeIcon icon={faEnvelope} /> payal.patel@slurpinsage.com
               </li>
             </ul>
           </div>
@@ -59,6 +60,32 @@ function Footer() {
             <ul className="hours">
               <li>Monday - Friday: 7am - 8pm</li>
               <li>Saturday - Sunday: 8am - 7pm</li>
+            </ul>
+          </div>
+
+          <div className="footer-section">
+            <h4>Terms and Conditions</h4>
+            <ul>
+              <li>
+                <Link to="/terms" target="_blank" rel="noopener noreferrer">
+                  Terms and Conditions
+                </Link>
+              </li>
+              <li>
+                <Link to="/cancellation-refund" target="_blank" rel="noopener noreferrer">
+                  Cancellation & Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/shipping-delivery" target="_blank" rel="noopener noreferrer">
+                  Shipping & Delivery Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

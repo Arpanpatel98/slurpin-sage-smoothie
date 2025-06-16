@@ -1,8 +1,10 @@
 import { getApps } from 'firebase/app';
 import { 
   getAuth, 
+  signInWithPhoneNumber, 
   GoogleAuthProvider, 
   signInWithPopup,
+  RecaptchaVerifier,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
@@ -10,7 +12,7 @@ import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'f
 import app from '../../firebase';
 
 // Initialize auth and providers
-export const auth = getAuth(app);
+const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore
@@ -135,99 +137,393 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-export const signInWithGoogle = async (isLogin = false) => {
+// Initialize reCAPTCHA verifier
+export const generateRecaptcha = () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const token = credential.accessToken;
+    // Remove any existing reCAPTCHA containers
+    const existingContainers = document.querySelectorAll('[id^="recaptcha-container-"]');
+    existingContainers.forEach(container => {
+      container.remove();
+    });
 
-    // Store user info in Firestore
-    await storeUserInfo(user, { signupMethod: 'google' }, !isLogin);
-
-    return {
-      success: true,
-      user,
-      token,
-      isNewUser: !isLogin
-    };
-  } catch (error) {
-    console.error('Error signing in with Google:', error);
-    
-    let errorMessage = 'An error occurred during Google sign in';
-    
-    switch (error.code) {
-      case 'auth/popup-blocked':
-        errorMessage = 'Please allow popups for this website to sign in with Google.';
-        break;
-      case 'auth/popup-closed-by-user':
-        errorMessage = 'Sign in was cancelled. Please try again.';
-        break;
-      case 'auth/cancelled-popup-request':
-        errorMessage = 'Sign in was cancelled. Please try again.';
-        break;
-      case 'auth/network-request-failed':
-        errorMessage = 'Network error. Please check your internet connection.';
-        break;
-      default:
-        errorMessage = error.message || 'Failed to sign in with Google. Please try again.';
+    // Clear any existing reCAPTCHA verifier
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
     }
 
-    return {
-      success: false,
+    // Create a new container with a unique ID
+    const containerId = `recaptcha-container-${Date.now()}`;
+    const container = document.createElement('div');
+    container.id = containerId;
+    document.body.appendChild(container);
+
+    // Create new reCAPTCHA instance
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+      'size': 'invisible',
+      'callback': () => {
+        console.log('reCAPTCHA verified');
+      },
+      'expired-callback': () => {
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        }
+        // Remove the container when expired
+        const expiredContainer = document.getElementById(containerId);
+        if (expiredContainer) {
+          expiredContainer.remove();
+        }
+      }
+    });
+
+    return window.recaptchaVerifier;
+  } catch (error) {
+    console.error('Error generating reCAPTCHA:', error);
+    // Clean up on error
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+    // Remove any containers that might have been created
+    const containers = document.querySelectorAll('[id^="recaptcha-container-"]');
+    containers.forEach(container => {
+      container.remove();
+    });
+    throw error;
+  }
+};
+
+// More reliable method to check if a phone number exists
+export const checkPhoneExists = async (phoneNumber) => {
+  try {
+    // We need to directly check with auth system
+    // First set up recaptcha
+    generateRecaptcha();
+    
+    // Try to send OTP - we'll use this just to check if the number exists
+    const appVerifier = window.recaptchaVerifier;
+    const formattedPhone = `+91${phoneNumber}`;
+    
+    try {
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      // If we get here without error, the number is valid for sending OTPs
+      // For checking existence, we need to save this for later verification
+      window.tempConfirmationResult = confirmationResult;
+      
+      // Check if the phone number is associated with any user
+      // Use the information from the confirmation to determine this
+      const phoneAuthProvider = confirmationResult.verificationId ? true : false;
+      
+      console.log('Phone verification sent', { 
+        phoneNumber, 
+        hasVerificationId: !!confirmationResult.verificationId
+      });
+      
+      return { 
+        // We'll assume the actual verification will determine if user exists
+        exists: false,
+        hasAuthProvider: phoneAuthProvider,
+        confirmationSent: true
+      };
+    } catch (error) {
+      // If we get an error sending OTP, check if it's because the number is invalid
+      if (error.code === 'auth/invalid-phone-number') {
+        return { exists: false, error: "Invalid phone number format" };
+      }
+      
+      // Other errors might indicate a problem with the service
+      return { exists: false, error: error.message };
+    }
+  } catch (error) {
+    console.error('Error checking phone existence:', error);
+    return { 
+      error: error.message,
+      exists: false 
+    };
+  }
+};
+
+// Request OTP
+export const requestOTP = async (phoneNumber, isLogin = false) => {
+  try {
+    // Clean up any existing reCAPTCHA
+    cleanupRecaptcha();
+
+    // Generate new reCAPTCHA instance
+    const appVerifier = generateRecaptcha();
+    if (!appVerifier) {
+      throw new Error('reCAPTCHA not initialized');
+    }
+
+    // Format phone number
+    const formattedPhone = phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber}`;
+    
+    // Request OTP
+    const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+    window.confirmationResult = confirmationResult;
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error requesting OTP:', error);
+    
+    // Clean up on error
+    cleanupRecaptcha();
+
+    let errorMessage = 'Failed to send OTP';
+    
+    switch (error.code) {
+      case 'auth/invalid-phone-number':
+        errorMessage = 'Please enter a valid phone number';
+        break;
+      case 'auth/too-many-requests':
+        errorMessage = 'Too many attempts. Please try again later';
+        break;
+      case 'auth/quota-exceeded':
+        errorMessage = 'SMS quota exceeded. Please try again later';
+        break;
+      case 'auth/captcha-check-failed':
+        errorMessage = 'reCAPTCHA verification failed. Please try again';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection';
+        break;
+      default:
+        errorMessage = error.message || 'Failed to send OTP';
+    }
+
+    return { 
+      success: false, 
       error: errorMessage,
       code: error.code
     };
   }
 };
 
+export const verifyOTP = async (otp, isLogin = false) => {
+  if (!window.confirmationResult) {
+    return { 
+      success: false, 
+      error: 'Please request OTP first',
+      code: 'auth/no-confirmation-result'
+    };
+  }
+
+  try {
+    const result = await window.confirmationResult.confirm(otp);
+    const user = result.user;
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'No account found. Please sign up first.',
+        code: 'auth/user-not-found',
+        shouldSignup: true
+      };
+    }
+
+    // Clear reCAPTCHA after successful verification
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+
+    const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+    
+    // If this is a login attempt and it's a new user
+    if (isLogin && isNewUser) {
+      try {
+        await auth.signOut();
+        return {
+          success: false,
+          error: 'No account found with this phone number. Please sign up first.',
+          code: 'auth/user-not-found',
+          shouldSignup: true
+        };
+      } catch (signOutError) {
+        console.error('Error signing out during login flow:', signOutError);
+      }
+    }
+    
+    // If this is a signup attempt and it's an existing user
+    if (!isLogin && !isNewUser) {
+      try {
+        await auth.signOut();
+        return {
+          success: false,
+          error: 'An account with this phone number already exists. Please sign in instead.',
+          code: 'auth/account-exists',
+          shouldLogin: true
+        };
+      } catch (signOutError) {
+        console.error('Error signing out during signup flow:', signOutError);
+      }
+    }
+
+    return { 
+      success: true, 
+      user: user,
+      token: await user.getIdToken(),
+      isNewUser
+    };
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    
+    // Clear reCAPTCHA on error
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+    
+    let errorMessage = 'Failed to verify OTP';
+    let shouldSignup = false;
+    
+    switch (error.code) {
+      case 'auth/invalid-verification-code':
+        errorMessage = 'The OTP you entered is incorrect. Please try again.';
+        break;
+      case 'auth/code-expired':
+        errorMessage = 'The OTP has expired. Please request a new one.';
+        break;
+      case 'auth/too-many-requests':
+        errorMessage = 'Too many failed attempts. Please try again later.';
+        break;
+      case 'auth/network-request-failed':
+        errorMessage = 'Network error. Please check your internet connection.';
+        break;
+      default:
+        errorMessage = 'Failed to verify OTP. Please try again.';
+    }
+    
+    return { 
+      success: false, 
+      error: errorMessage,
+      code: error.code,
+      shouldSignup
+    };
+  }
+};
+
+// Google Authentication Function
+export const signInWithGoogle = async (isLogin = false) => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'Failed to retrieve Google user information',
+        code: 'auth/unknown-error'
+      };
+    }
+    
+    // Check if this is a new user by comparing creation and last sign-in times
+    const isNewUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+    
+    // Store user info in Firestore
+    await storeUserInfo(user, {
+      signupMethod: 'google',
+      name: user.displayName
+    }, isNewUser);
+    
+    return { 
+      success: true, 
+      user,
+      token: await user.getIdToken(),
+      isNewUser
+    };
+  } catch (error) {
+    console.error('Error signing in with Google:', error);
+    
+    let errorMessage = 'Failed to sign in with Google';
+    
+    switch (error.code) {
+      case 'auth/popup-closed-by-user':
+        errorMessage = 'Google sign-in popup was closed';
+        break;
+      case 'auth/cancelled-popup-request':
+        errorMessage = 'Google sign-in was cancelled';
+        break;
+      case 'auth/popup-blocked':
+        errorMessage = 'Google sign-in popup was blocked. Please allow popups for this site.';
+        break;
+      case 'auth/account-exists-with-different-credential':
+        errorMessage = 'An account already exists with the same email address but different sign-in credentials. Please sign in using the original method.';
+        break;
+      default:
+        errorMessage = error.message || 'Failed to sign in with Google';
+    }
+    
+    return { 
+      success: false, 
+      error: errorMessage,
+      code: error.code
+    };
+  }
+};
+
+// Sign Out Function
 export const signOut = async () => {
   try {
     await auth.signOut();
     return { success: true };
   } catch (error) {
     console.error('Error signing out:', error);
-    return {
-      success: false,
-      error: error.message
+    return { 
+      success: false, 
+      error: error.message 
     };
   }
 };
 
+/**
+ * Store or update user information in Firestore after signup/login.
+ * @param {object} user - The Firebase user object.
+ * @param {object} extraData - Any extra data to store (e.g., name, signup method).
+ * @param {boolean} isNewUser - Whether this is a new signup.
+ */
 export const storeUserInfo = async (user, extraData = {}, isNewUser = false) => {
-  try {
-    const userRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
-
-    if (!userDoc.exists() || isNewUser) {
-      // Create new user document
-      await setDoc(userRef, {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || extraData.name || '',
-        photoURL: user.photoURL || '',
-        phoneNumber: user.phoneNumber || '',
-        signupMethod: extraData.signupMethod || 'email',
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-        ...extraData
-      });
-    } else {
-      // Update existing user document
-      await updateDoc(userRef, {
-        lastLogin: serverTimestamp(),
-        displayName: user.displayName || userDoc.data().displayName || '',
-        photoURL: user.photoURL || userDoc.data().photoURL || '',
-        ...extraData
-      });
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error storing user info:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+  if (!user) return;
+  const userRef = doc(db, 'users', user.uid);
+  const userSnap = await getDoc(userRef);
+  const baseData = {
+    uid: user.uid,
+    email: user.email || null,
+    phoneNumber: user.phoneNumber || null,
+    displayName: user.displayName || extraData.name || null,
+    photoURL: user.photoURL || null,
+    providerId: user.providerData[0]?.providerId || null,
+    lastLogin: serverTimestamp(),
+    ...extraData
+  };
+  if (userSnap.exists()) {
+    // Update last login and any changed info
+    await updateDoc(userRef, baseData);
+  } else if (isNewUser) {
+    // Create new user document
+    await setDoc(userRef, {
+      ...baseData,
+      createdAt: serverTimestamp(),
+      signupMethod: extraData.signupMethod || baseData.providerId || 'unknown',
+    });
   }
 };
+
+// Cleanup reCAPTCHA
+export const cleanupRecaptcha = () => {
+  try {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+    const containers = document.querySelectorAll('[id^="recaptcha-container-"]');
+    containers.forEach(container => {
+      container.remove();
+    });
+  } catch (error) {
+    console.error('Error cleaning up reCAPTCHA:', error);
+  }
+};
+
+export { auth };
