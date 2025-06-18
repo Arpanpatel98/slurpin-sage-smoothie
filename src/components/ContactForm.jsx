@@ -136,7 +136,7 @@ const ContactForm = () => {
           </div>
           <h3>Call Us</h3>
           <p>Our friendly team is here to help</p>
-          <a href="tel:+919876543210">+91 98765 43210</a>
+          <a href="tel:+918347459583">+91 83474 59583</a>
         </div>
 
         <div className="contact-card_contact">
@@ -145,7 +145,7 @@ const ContactForm = () => {
           </div>
           <h3>Email Us</h3>
           <p>We'll respond as soon as possible</p>
-          <a href="mailto:hello@slurpinsage.com">hello@slurpinsage.com</a>
+          <a href="mailto:payal.patel@slurpinsage.com">payal.patel@slurpinsage.com</a>
         </div>
 
         <div className="contact-card_contact">
@@ -154,7 +154,7 @@ const ContactForm = () => {
           </div>
           <h3>Visit Us</h3>
           <p>Come say hello at our store</p>
-          <address>123 Green Street, Healthyville, CA 92210</address>
+          <address>2081, 16C main 1st floor HAL 2nd stage Kodihalli, Indiranagar 560008</address>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ const ContactForm = () => {
             
             <div className="store-hours_contact">
               <h4>Hours:</h4>
-              <ul>
+              <ul>payal.patel@slurpinsage.com
                 <li><span>Monday - Friday:</span> 7am - 8pm</li>
                 <li><span>Saturday:</span> 8am - 8pm</li>
                 <li><span>Sunday:</span> 9am - 6pm</li>
@@ -322,7 +322,7 @@ const ContactForm = () => {
             <div className="store-contact_contact">
               <h4>Contact:</h4>
               <p><span>Phone:</span> +91 98765 43210</p>
-              <p><span>Email:</span> <a href="mailto:flagship@slurpinsage.com">flagship@slurpinsage.com</a></p>
+              <p><span>Email:</span> <a href="mailto:payal.patel@slurpinsage.com">payal.patel@slurpinsage.com</a></p>
             </div>
             
             <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer" className="directions-btn_contact">
