@@ -121,17 +121,17 @@ function About() {
             </div>
           </div>
 
-          <div className="timeline-item" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="300">
+          {/* <div className="timeline-item" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="300">
             <div className="timeline-content">
               <h3>Today</h3>
               <p>With 12 locations across the region, we continue to grow and expand while staying true to our core mission.</p>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
       {/* Team Section with emoji avatars */}
-      <div className="team-section">
+      {/* <div className="team-section">
         <h2 data-aos="fade-up">Meet Our Team</h2>
         <div className="team-container">
           <div className="team-member" data-aos="zoom-in" data-aos-delay="100">
@@ -158,12 +158,12 @@ function About() {
             <p>Operations Manager</p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Testimonials Section */}
       <div className="about-testimonials">
         <h2 data-aos="fade-up">What Our Customers Say</h2>
-        <div className="testimonials-container">
+        {/* <div className="testimonials-container">
           <div className="testimonial" data-aos="fade-up" data-aos-delay="100" data-aos-duration="1000">
             <div className="quote-mark">"</div>
             <p>Slurpin'Sage has completely transformed my morning routine. Their Green Goddess smoothie gives me the energy I need to power through the day, and I love knowing I'm putting something so healthy into my body!</p>
@@ -190,7 +190,7 @@ function About() {
               <span>Aiden K.</span>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Background Image Parallax Section */}

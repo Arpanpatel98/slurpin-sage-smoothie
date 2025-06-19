@@ -5,42 +5,42 @@ import './Testimonials.css';
 
 // Fallback static data
 const staticTestimonials = [
-  {
-    id: '1',
-    rating: 5,
-    title: "My Daily Energy Boost",
-    text: "The Green Goddess smoothie has become my daily ritual. I've noticed a significant boost in my energy levels!",
-    author: "Jane Doe",
-    role: "Fitness Enthusiast",
-    image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
-  },
-  {
-    id: '2',
-    rating: 5,
-    title: "Perfect for Fitness Goals",
-    text: "As a fitness trainer, I recommend SlurpinSage to all my clients. Their protein-packed options are excellent!",
-    author: "Mike Smith",
-    role: "Personal Trainer",
-    image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
-  },
-  {
-    id: '3',
-    rating: 5,
-    title: "Family Favorite",
-    text: "I love that SlurpinSage uses all organic ingredients. My kids love the taste and nutrition!",
-    author: "Amy Johnson",
-    role: "Mother of Two",
-    image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
-  },
-  {
-    id: '4',
-    rating: 5,
-    title: "Convenient and Rewarding",
-    text: "The mobile ordering app is so convenient, and the rewards program is generous. Best smoothie shop in town!",
-    author: "Robert Lee",
-    role: "Tech Professional",
-    image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
-  },
+  // {
+  //   id: '1',
+  //   rating: 5,
+  //   title: "My Daily Energy Boost",
+  //   text: "The Green Goddess smoothie has become my daily ritual. I've noticed a significant boost in my energy levels!",
+  //   author: "Jane Doe",
+  //   role: "Fitness Enthusiast",
+  //   image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
+  // },
+  // {
+  //   id: '2',
+  //   rating: 5,
+  //   title: "Perfect for Fitness Goals",
+  //   text: "As a fitness trainer, I recommend SlurpinSage to all my clients. Their protein-packed options are excellent!",
+  //   author: "Mike Smith",
+  //   role: "Personal Trainer",
+  //   image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
+  // },
+  // {
+  //   id: '3',
+  //   rating: 5,
+  //   title: "Family Favorite",
+  //   text: "I love that SlurpinSage uses all organic ingredients. My kids love the taste and nutrition!",
+  //   author: "Amy Johnson",
+  //   role: "Mother of Two",
+  //   image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
+  // },
+  // {
+  //   id: '4',
+  //   rating: 5,
+  //   title: "Convenient and Rewarding",
+  //   text: "The mobile ordering app is so convenient, and the rewards program is generous. Best smoothie shop in town!",
+  //   author: "Robert Lee",
+  //   role: "Tech Professional",
+  //   image: 'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Favatar.jpg?alt=media',
+  // },
 ];
 
 const Testimonials = () => {
@@ -113,9 +113,9 @@ const Testimonials = () => {
       }
 
       if (fetchedReviews.length === 0) {
-        console.warn('No reviews found in product_reviews.');
-        setReviews(staticTestimonials);
-        setError('No reviews available. Showing default testimonials.');
+        // console.warn('No reviews found in product_reviews.');
+        // setReviews(staticTestimonials);
+        // setError('No reviews available. Showing default testimonials.');
       } else {
         // Shuffle the reviews before setting them
         setReviews(shuffleArray(fetchedReviews));
