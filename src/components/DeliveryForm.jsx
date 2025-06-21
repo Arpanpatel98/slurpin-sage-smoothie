@@ -3,7 +3,7 @@ import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
 // Shop's coordinates (near Anand, Gujarat, India)
-const SHOP_LOCATION = { lat: 22.6029671, lon: 72.819893 };
+const SHOP_LOCATION = { lat: 12.964860438735816, lon: 77.64245173753876 };
 
 // Haversine formula to calculate distance between two points (in kilometers)
 function getDistance(lat1, lon1, lat2, lon2) {
