@@ -1,39 +1,47 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
-import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../../firebase';
-import './ProductCustomization.css';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../../context/CartContext";
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db, auth } from "../../firebase";
+import "./ProductCustomization.css";
 
 const ProductCustomizationModal = () => {
-  const { addToCart, setShowCustomization, cartItems, showCustomization } = useCart();
+  const { addToCart, setShowCustomization, cartItems, showCustomization } =
+    useCart();
   const navigate = useNavigate();
   const modalRef = useRef(null);
-  const isEditMode = showCustomization?.mode === 'edit';
+  const isEditMode = showCustomization?.mode === "edit";
   const product = showCustomization?.product;
 
   // State initialization with proper default values
-  const [base, setBase] = useState('');
+  const [base, setBase] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [selectedBoosters, setSelectedBoosters] = useState([]);
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState("");
   const [bases, setBases] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [boosters, setBoosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const excludeBaseSelection = ["morning-glory-smoothie", "virgin-pina-colada"];
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
-    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Fdefault.jpg?alt=media';
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.appspot.com/o/default%2Fdefault.jpg?alt=media";
 
   // Default product for add mode
   const defaultProduct = {
-    id: 'morning-glory-smoothie',
-    productId: 'morning-glory-smoothie',
-    category: 'smoothies',
-    name: 'Morning Glory Smoothie',
+    id: "morning-glory-smoothie",
+    productId: "morning-glory-smoothie",
+    category: "smoothies",
+    name: "Morning Glory Smoothie",
     image: DEFAULT_IMAGE_URL, // Use Firebase Storage default
     price: 500, // Matches seed.js (INR)
     rating: 4,
@@ -45,25 +53,38 @@ const ProductCustomizationModal = () => {
     ...product,
     image: product?.image || DEFAULT_IMAGE_URL,
     price: Number(product?.price || defaultProduct.price),
+    baseOptionDisable: excludeBaseSelection.includes(
+      product?.productId || defaultProduct.productId
+    ),
   };
 
   // Initialize state with product data when in edit mode
   useEffect(() => {
     if (isEditMode && product) {
-      setBase(product.base || '');
+      setBase(product.base || "");
       setQuantity(product.quantity || 1);
       setSelectedToppings(product.toppings || []);
       setSelectedBoosters(product.boosters || []);
-      setSpecialInstructions(product.specialInstructions || '');
+      setSpecialInstructions(product.specialInstructions || "");
     }
   }, [isEditMode, product]);
 
   // Calculate basePrice
   const basePrice = useMemo(() => {
     if (isEditMode) {
-      const prevToppingsPrice = (product.toppings || []).reduce((sum, t) => sum + (t.price || 0), 0);
-      const prevBoostersPrice = (product.boosters || []).reduce((sum, b) => sum + (b.price || 0), 0);
-      return (Number(product.price) / product.quantity) - prevToppingsPrice - prevBoostersPrice;
+      const prevToppingsPrice = (product.toppings || []).reduce(
+        (sum, t) => sum + (t.price || 0),
+        0
+      );
+      const prevBoostersPrice = (product.boosters || []).reduce(
+        (sum, b) => sum + (b.price || 0),
+        0
+      );
+      return (
+        Number(product.price) / product.quantity -
+        prevToppingsPrice -
+        prevBoostersPrice
+      );
     }
     return Number(currentProduct.price);
   }, [isEditMode, product, currentProduct.price]);
@@ -75,7 +96,7 @@ const ProductCustomizationModal = () => {
       setError(null);
       try {
         // Fetch bases
-        const basesRef = collection(db, 'customization_options/config/bases');
+        const basesRef = collection(db, "customization_options/config/bases");
         const basesSnapshot = await getDocs(basesRef);
         const basesData = basesSnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -85,38 +106,55 @@ const ProductCustomizationModal = () => {
         setBases(basesData);
 
         // Fetch toppings
-        const toppingsRef = collection(db, 'customization_options/config/toppings');
+        const toppingsRef = collection(
+          db,
+          "customization_options/config/toppings"
+        );
         const toppingsSnapshot = await getDocs(toppingsRef);
         const toppingsData = toppingsSnapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().name,
-          description: doc.data().description || '',
+          description: doc.data().description || "",
           price: doc.data().price || 0,
         }));
         setToppings(toppingsData);
 
         // Fetch boosters
-        const boostersRef = collection(db, 'customization_options/config/boosters');
+        const boostersRef = collection(
+          db,
+          "customization_options/config/boosters"
+        );
         const boostersSnapshot = await getDocs(boostersRef);
         const boostersData = boostersSnapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().name,
-          description: doc.data().description || '',
+          description: doc.data().description || "",
           price: doc.data().price || 0,
         }));
         setBoosters(boostersData);
 
         // Preselect customizations in edit mode
         if (isEditMode && product) {
-          const validBase = product.base && basesData.some((b) => b.name === product.base)
-            ? product.base
-            : basesData[0]?.name || '';
+          const validBase =
+            product.base && basesData.some((b) => b.name === product.base)
+              ? product.base
+              : basesData[0]?.name || "";
           setBase(validBase);
 
           const preselectedToppings = (product.toppings || [])
             .map((pt) => {
               const match = toppingsData.find((t) => t.id === pt.id);
-              return match || (pt.id && pt.name ? { id: pt.id, name: pt.name, description: pt.description || '', price: pt.price || 0 } : null);
+              return (
+                match ||
+                (pt.id && pt.name
+                  ? {
+                      id: pt.id,
+                      name: pt.name,
+                      description: pt.description || "",
+                      price: pt.price || 0,
+                    }
+                  : null)
+              );
             })
             .filter(Boolean)
             .slice(0, 3);
@@ -125,7 +163,17 @@ const ProductCustomizationModal = () => {
           const preselectedBoosters = (product.boosters || [])
             .map((pb) => {
               const match = boostersData.find((b) => b.id === pb.id);
-              return match || (pb.id && pb.name ? { id: pb.id, name: pb.name, description: pb.description || '', price: pb.price || 0 } : null);
+              return (
+                match ||
+                (pb.id && pb.name
+                  ? {
+                      id: pb.id,
+                      name: pb.name,
+                      description: pb.description || "",
+                      price: pb.price || 0,
+                    }
+                  : null)
+              );
             })
             .filter(Boolean)
             .slice(0, 2);
@@ -286,14 +334,22 @@ const ProductCustomizationModal = () => {
         if (!product.id) throw new Error('Missing cart item ID');
         
         // Create a reference to the existing document
-        const cartItemRef = doc(db, `cart_items/${auth.currentUser.uid}/items`, product.id);
-        
+        const cartItemRef = doc(
+          db,
+          `cart_items/${auth.currentUser.uid}/items`,
+          product.id
+        );
+
         // Update the document with the new data
-        await setDoc(cartItemRef, {
-          ...customizedProduct,
-          id: product.id, // Preserve the original ID
-          timestamp: serverTimestamp(),
-        }, { merge: true });
+        await setDoc(
+          cartItemRef,
+          {
+            ...customizedProduct,
+            id: product.id, // Preserve the original ID
+            timestamp: serverTimestamp(),
+          },
+          { merge: true }
+        );
 
         // Update the cart context
         addToCart({ ...customizedProduct, id: product.id });
@@ -303,30 +359,43 @@ const ProductCustomizationModal = () => {
           (item) =>
             item.productId === customizedProduct.productId &&
             item.base === customizedProduct.base &&
-            JSON.stringify(item.toppings) === JSON.stringify(customizedProduct.toppings) &&
-            JSON.stringify(item.boosters) === JSON.stringify(customizedProduct.boosters) &&
+            JSON.stringify(item.toppings) ===
+              JSON.stringify(customizedProduct.toppings) &&
+            JSON.stringify(item.boosters) ===
+              JSON.stringify(customizedProduct.boosters) &&
             item.specialInstructions === customizedProduct.specialInstructions
         );
 
         if (existingItem) {
           // Update existing item
           const newQuantity = existingItem.quantity + quantity;
-          const newPrice = (basePrice + toppingsPrice + boostersPrice) * newQuantity;
+          const newPrice =
+            (basePrice + toppingsPrice + boostersPrice) * newQuantity;
           const updatedProduct = {
             ...customizedProduct,
             quantity: newQuantity,
             price: newPrice,
           };
-          const cartItemRef = doc(db, `cart_items/${auth.currentUser.uid}/items`, existingItem.id);
-          await setDoc(cartItemRef, {
-            ...updatedProduct,
-            id: existingItem.id,
-            timestamp: serverTimestamp(),
-          }, { merge: true });
+          const cartItemRef = doc(
+            db,
+            `cart_items/${auth.currentUser.uid}/items`,
+            existingItem.id
+          );
+          await setDoc(
+            cartItemRef,
+            {
+              ...updatedProduct,
+              id: existingItem.id,
+              timestamp: serverTimestamp(),
+            },
+            { merge: true }
+          );
           addToCart({ ...updatedProduct, id: existingItem.id });
         } else {
           // Add new item
-          const cartItemRef = doc(collection(db, `cart_items/${auth.currentUser.uid}/items`));
+          const cartItemRef = doc(
+            collection(db, `cart_items/${auth.currentUser.uid}/items`)
+          );
           const cartItemId = cartItemRef.id;
           await setDoc(cartItemRef, {
             ...customizedProduct,
@@ -338,10 +407,10 @@ const ProductCustomizationModal = () => {
       }
 
       setShowCustomization(null);
-      navigate('/cart');
+      navigate("/cart");
     } catch (err) {
-      console.error('Error saving to cart:', err);
-      setError(`Failed to save: ${err.message || 'Unknown error'}`);
+      console.error("Error saving to cart:", err);
+      setError(`Failed to save: ${err.message || "Unknown error"}`);
     }
   };
 
@@ -354,8 +423,10 @@ const ProductCustomizationModal = () => {
       .map((_, i) => (
         <span
           key={i}
-          className={`star_productcustomizationmodal ${i < rating ? 'filled_productcustomizationmodal' : ''}`}
-          aria-label={i < rating ? 'Filled star' : 'Empty star'}
+          className={`star_productcustomizationmodal ${
+            i < rating ? "filled_productcustomizationmodal" : ""
+          }`}
+          aria-label={i < rating ? "Filled star" : "Empty star"}
         >
           ★
         </span>
@@ -363,8 +434,14 @@ const ProductCustomizationModal = () => {
   };
 
   const calculateTotalPrice = () => {
-    const toppingsPrice = selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0);
-    const boostersPrice = selectedBoosters.reduce((sum, b) => sum + (b.price || 0), 0);
+    const toppingsPrice = selectedToppings.reduce(
+      (sum, t) => sum + (t.price || 0),
+      0
+    );
+    const boostersPrice = selectedBoosters.reduce(
+      (sum, b) => sum + (b.price || 0),
+      0
+    );
     return (basePrice + toppingsPrice + boostersPrice) * quantity;
   };
 
@@ -373,7 +450,11 @@ const ProductCustomizationModal = () => {
   }
 
   if (!currentProduct.id || !currentProduct.name) {
-    return <div className="error_productcustomizationmodal">Invalid product data. Please try again.</div>;
+    return (
+      <div className="error_productcustomizationmodal">
+        Invalid product data. Please try again.
+      </div>
+    );
   }
 
   return (
@@ -389,10 +470,17 @@ const ProductCustomizationModal = () => {
         ref={modalRef}
         tabIndex="-1"
       >
-        {error && <div className="error_productcustomizationmodal">{error}</div>}
+        {error && (
+          <div className="error_productcustomizationmodal">{error}</div>
+        )}
         <div className="header_productcustomizationmodal">
-          <h2 id="customization-title" className="title_productcustomizationmodal">
-            {isEditMode ? `Edit ${currentProduct.name}` : `Customize ${currentProduct.name}`}
+          <h2
+            id="customization-title"
+            className="title_productcustomizationmodal"
+          >
+            {isEditMode
+              ? `Edit ${currentProduct.name}`
+              : `Customize ${currentProduct.name}`}
           </h2>
           <button
             className="close_button_productcustomizationmodal"
@@ -411,58 +499,87 @@ const ProductCustomizationModal = () => {
               onError={(e) => {
                 e.target.onerror = null; // Prevent infinite loop
                 e.target.src = DEFAULT_IMAGE_URL; // Set default image
-                console.warn(`Failed to load image for ${currentProduct.name}: ${currentProduct.image}`);
+                console.warn(
+                  `Failed to load image for ${currentProduct.name}: ${currentProduct.image}`
+                );
               }}
             />
           </div>
           <div className="product_details_productcustomizationmodal">
-            <h3 className="product_name_productcustomizationmodal">{currentProduct.name}</h3>
-            <p className="product_base_productcustomizationmodal">{base || 'Select a base'}</p>
+            <h3 className="product_name_productcustomizationmodal">
+              {currentProduct.name}
+            </h3>
+            <p className="product_base_productcustomizationmodal">
+              {base || "Select a base"}
+            </p>
             <div className="product_rating_productcustomizationmodal">
               {renderStars(currentProduct.rating)}
-              <span className="review_count_productcustomizationmodal">({currentProduct.reviewCount})</span>
+              <span className="review_count_productcustomizationmodal">
+                ({currentProduct.reviewCount})
+              </span>
             </div>
           </div>
         </div>
-
-        <div className="section_productcustomizationmodal">
-          <h4 className="section_title_productcustomizationmodal">Base</h4>
-          <div className="base_options_productcustomizationmodal">
-            {bases.map((baseOption) => (
-              <button
-                key={baseOption.id}
-                className={`base_option_productcustomizationmodal ${base === baseOption.name ? 'selected_productcustomizationmodal' : ''}`}
-                onClick={() => handleBaseChange(baseOption.name)}
-                aria-pressed={base === baseOption.name}
-              >
-                {baseOption.name}
-              </button>
-            ))}
+        {!currentProduct.baseOptionDisable && (
+          <div className="section_productcustomizationmodal">
+            <h4 className="section_title_productcustomizationmodal">Base</h4>
+            <div className="base_options_productcustomizationmodal">
+              {bases.map((baseOption) => (
+                <button
+                  key={baseOption.id}
+                  className={`base_option_productcustomizationmodal ${
+                    base === baseOption.name
+                      ? "selected_productcustomizationmodal"
+                      : ""
+                  }`}
+                  onClick={() => handleBaseChange(baseOption.name)}
+                  aria-pressed={base === baseOption.name}
+                >
+                  {baseOption.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="section_productcustomizationmodal">
           <div className="section_header_productcustomizationmodal">
-            <h4 className="section_title_productcustomizationmodal">Superfood Toppings</h4>
-            <span className="selection_limit_productcustomizationmodal">Select up to 3</span>
+            <h4 className="section_title_productcustomizationmodal">
+              Superfood Toppings
+            </h4>
+            <span className="selection_limit_productcustomizationmodal">
+              Select up to 3
+            </span>
           </div>
           <div className="toppings_list_productcustomizationmodal">
             {toppings.map((topping) => (
-              <div className="topping_item_productcustomizationmodal" key={topping.id}>
+              <div
+                className="topping_item_productcustomizationmodal"
+                key={topping.id}
+              >
                 <label className="checkbox_container_productcustomizationmodal">
                   <input
                     type="checkbox"
                     checked={isToppingSelected(topping.id)}
                     onChange={() => handleToppingToggle(topping)}
-                    disabled={!isToppingSelected(topping.id) && selectedToppings.length >= 3}
+                    disabled={
+                      !isToppingSelected(topping.id) &&
+                      selectedToppings.length >= 3
+                    }
                     aria-label={`Toggle ${topping.name}`}
                   />
                   <span className="checkmark_productcustomizationmodal"></span>
                   <div className="topping_info_productcustomizationmodal">
-                    <span className="topping_name_productcustomizationmodal">{topping.name}</span>
-                    <span className="topping_description_productcustomizationmodal">{topping.description}</span>
+                    <span className="topping_name_productcustomizationmodal">
+                      {topping.name}
+                    </span>
+                    <span className="topping_description_productcustomizationmodal">
+                      {topping.description}
+                    </span>
                   </div>
-                  <span className="topping_price_productcustomizationmodal">+₹{topping.price.toFixed(2)}</span>
+                  <span className="topping_price_productcustomizationmodal">
+                    +₹{topping.price.toFixed(2)}
+                  </span>
                 </label>
               </div>
             ))}
@@ -471,26 +588,42 @@ const ProductCustomizationModal = () => {
 
         <div className="section_productcustomizationmodal">
           <div className="section_header_productcustomizationmodal">
-            <h4 className="section_title_productcustomizationmodal">Nutritional Boosters</h4>
-            <span className="selection_limit_productcustomizationmodal">Select up to 2</span>
+            <h4 className="section_title_productcustomizationmodal">
+              Nutritional Boosters
+            </h4>
+            <span className="selection_limit_productcustomizationmodal">
+              Select up to 2
+            </span>
           </div>
           <div className="boosters_list_productcustomizationmodal">
             {boosters.map((booster) => (
-              <div className="booster_item_productcustomizationmodal" key={booster.id}>
+              <div
+                className="booster_item_productcustomizationmodal"
+                key={booster.id}
+              >
                 <label className="checkbox_container_productcustomizationmodal">
                   <input
                     type="checkbox"
                     checked={isBoosterSelected(booster.id)}
                     onChange={() => handleBoosterToggle(booster)}
-                    disabled={!isBoosterSelected(booster.id) && selectedBoosters.length >= 2}
+                    disabled={
+                      !isBoosterSelected(booster.id) &&
+                      selectedBoosters.length >= 2
+                    }
                     aria-label={`Toggle ${booster.name}`}
                   />
                   <span className="checkmark_productcustomizationmodal"></span>
                   <div className="booster_info_productcustomizationmodal">
-                    <span className="booster_name_productcustomizationmodal">{booster.name}</span>
-                    <span className="booster_description_productcustomizationmodal">{booster.description}</span>
+                    <span className="booster_name_productcustomizationmodal">
+                      {booster.name}
+                    </span>
+                    <span className="booster_description_productcustomizationmodal">
+                      {booster.description}
+                    </span>
                   </div>
-                  <span className="booster_price_productcustomizationmodal">+₹{booster.price.toFixed(2)}</span>
+                  <span className="booster_price_productcustomizationmodal">
+                    +₹{booster.price.toFixed(2)}
+                  </span>
                 </label>
               </div>
             ))}
@@ -498,7 +631,9 @@ const ProductCustomizationModal = () => {
         </div>
 
         <div className="section_productcustomizationmodal">
-          <h4 className="section_title_productcustomizationmodal">Special Instructions</h4>
+          <h4 className="section_title_productcustomizationmodal">
+            Special Instructions
+          </h4>
           <textarea
             className="special_instructions_productcustomizationmodal"
             placeholder="Any allergies or preferences?"
@@ -511,7 +646,9 @@ const ProductCustomizationModal = () => {
         <div className="quantity_section_productcustomizationmodal">
           <h4 className="section_title_productcustomizationmodal">Quantity</h4>
           <div className="product_quantity_productcustomizationmodal">
-            <div className="product_info_label_productcustomizationmodal">{currentProduct.name}</div>
+            <div className="product_info_label_productcustomizationmodal">
+              {currentProduct.name}
+            </div>
             <div className="quantity_controls_productcustomizationmodal">
               <button
                 className="quantity_button_productcustomizationmodal decrease_productcustomizationmodal"
@@ -521,7 +658,9 @@ const ProductCustomizationModal = () => {
               >
                 −
               </button>
-              <span className="quantity_value_productcustomizationmodal">{quantity}</span>
+              <span className="quantity_value_productcustomizationmodal">
+                {quantity}
+              </span>
               <button
                 className="quantity_button_productcustomizationmodal increase_productcustomizationmodal"
                 onClick={handleIncreaseQuantity}
@@ -535,30 +674,48 @@ const ProductCustomizationModal = () => {
         </div>
 
         <div className="order_summary_productcustomizationmodal">
-          <h4 className="section_title_productcustomizationmodal">Order Summary</h4>
+          <h4 className="section_title_productcustomizationmodal">
+            Order Summary
+          </h4>
           <div className="summary_item_productcustomizationmodal">
-            <span className="summary_label_productcustomizationmodal">{currentProduct.name}</span>
-            <span className="summary_price_productcustomizationmodal">₹{Number(currentProduct.price).toFixed(2)}</span>
+            <span className="summary_label_productcustomizationmodal">
+              {currentProduct.name}
+            </span>
+            <span className="summary_price_productcustomizationmodal">
+              ₹{Number(currentProduct.price).toFixed(2)}
+            </span>
           </div>
           {selectedToppings.length > 0 && (
             <div className="summary_item_productcustomizationmodal">
-              <span className="summary_label_productcustomizationmodal">Toppings</span>
+              <span className="summary_label_productcustomizationmodal">
+                Toppings
+              </span>
               <span className="summary_price_productcustomizationmodal">
-                ₹{selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0).toFixed(2)}
+                ₹
+                {selectedToppings
+                  .reduce((sum, t) => sum + (t.price || 0), 0)
+                  .toFixed(2)}
               </span>
             </div>
           )}
           {selectedBoosters.length > 0 && (
             <div className="summary_item_productcustomizationmodal">
-              <span className="summary_label_productcustomizationmodal">Nutritional Boosters</span>
+              <span className="summary_label_productcustomizationmodal">
+                Nutritional Boosters
+              </span>
               <span className="summary_price_productcustomizationmodal">
-                ₹{selectedBoosters.reduce((sum, b) => sum + (b.price || 0), 0).toFixed(2)}
+                ₹
+                {selectedBoosters
+                  .reduce((sum, b) => sum + (b.price || 0), 0)
+                  .toFixed(2)}
               </span>
             </div>
           )}
           <div className="summary_total_productcustomizationmodal">
             <span className="total_label_productcustomizationmodal">Total</span>
-            <span className="total_price_productcustomizationmodal">₹{calculateTotalPrice().toFixed(2)}</span>
+            <span className="total_price_productcustomizationmodal">
+              ₹{calculateTotalPrice().toFixed(2)}
+            </span>
           </div>
         </div>
 
@@ -566,9 +723,11 @@ const ProductCustomizationModal = () => {
           <button
             className="add_to_cart_button_productcustomizationmodal"
             onClick={handleSave}
-            aria-label={isEditMode ? 'Update cart' : 'Add to cart'}
+            aria-label={isEditMode ? "Update cart" : "Add to cart"}
           >
-            {isEditMode ? `Update Cart - ₹${calculateTotalPrice().toFixed(2)}` : `Add to Cart - ₹${calculateTotalPrice().toFixed(2)}`}
+            {isEditMode
+              ? `Update Cart - ₹${calculateTotalPrice().toFixed(2)}`
+              : `Add to Cart - ₹${calculateTotalPrice().toFixed(2)}`}
           </button>
         </div>
       </div>
