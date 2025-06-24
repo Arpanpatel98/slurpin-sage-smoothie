@@ -1,5 +1,5 @@
 .footer {
-  background-color: #335c36;
+  background-color: #137B3B;
   color: white;
   padding-top: 60px;
 }
@@ -34,7 +34,7 @@
 .social-links {
   display: flex;
   gap: 12px;
-  margin-left: 60px;
+  justify-content: center;
 }
 
 .social-links a {
@@ -123,7 +123,7 @@
 }
 
 .footer-bottom {
-  background-color: #2a4c2c;
+  background-color: #137B3B;
   text-align: center;
   padding: 20px;
   font-size: 14px;

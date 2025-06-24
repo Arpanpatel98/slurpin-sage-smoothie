@@ -23,9 +23,10 @@ const OrderSummary = () => {
       setIsApplying(false);
     }
   };
+  
 
   const handleCheckout = () => {
-    navigate('/checkout');
+      navigate('/checkout');
   };
 
   if (cart.length === 0) {
