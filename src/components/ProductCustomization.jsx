@@ -54,7 +54,7 @@ const ProductCustomization = ({ product, onClose }) => {
         const basesRef = collection(db, 'customization_options/config/bases');
         const basesSnapshot = await getDocs(basesRef);
         const basesData = basesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setBases(basesData);
+        setBases(currentProduct.baseOptionDisable ? null : basesData);
 
         // Fetch toppings
         const toppingsRef = collection(db, 'customization_options/config/toppings');
@@ -265,10 +265,11 @@ const ProductCustomization = ({ product, onClose }) => {
           </div>
         </div>
 
-        <div className="customization-section">
+        {!currentProduct.baseOptionDisable && (
+          <div className="customization-section">
           <h4>Base</h4>
           <div className="base-options">
-            {bases.map((baseOption) => (
+            {bases?.map((baseOption) => (
               <button
                 key={baseOption.id}
                 className={`base-option ${base === baseOption.name ? 'selected' : ''}`}
@@ -278,7 +279,8 @@ const ProductCustomization = ({ product, onClose }) => {
               </button>
             ))}
           </div>
-        </div>
+        </div> 
+        )}
 
         <div className="customization-section">
           <div className="section-header2">

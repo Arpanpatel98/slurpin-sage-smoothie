@@ -57,10 +57,10 @@ const PopularItems = () => {
               tag: tagMap[doc.id] || null,
               stock: data.stock || 0,
               isActive: data.isActive !== false,
+              baseOptionEnable: data.baseOptionEnable || true,
             });
           });
         }
-
         if (items.length === 0) {
           throw new Error("No items found in any category");
         }

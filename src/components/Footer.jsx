@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFacebookF, faInstagram, faTwitter, faPinterest } from '@fortawesome/free-brands-svg-icons';
+import { faInstagram, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { faMapMarkerAlt, faPhone, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import './Footer.css';
 
@@ -13,17 +13,11 @@ function Footer() {
           <h3>SlurpinSage</h3>
           <p>Nourishing bodies and refreshing minds with nature's best ingredients since 2015.</p>
           <div className="social-links">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
-              <FontAwesomeIcon icon={faFacebookF} />
-            </a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://www.instagram.com/slurpinsage?igsh=NDVjbXd4a3NtaTcw" target="_blank" rel="noopener noreferrer">
               <FontAwesomeIcon icon={faInstagram} />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-              <FontAwesomeIcon icon={faTwitter} />
-            </a>
-            <a href="https://pinterest.com" target="_blank" rel="noopener noreferrer">
-              <FontAwesomeIcon icon={faPinterest} />
+            <a href="https://chat.whatsapp.com/J3nGZIe90RD1w0OpbxxVf7" target="_blank" rel="noopener noreferrer">
+              <FontAwesomeIcon icon={faWhatsapp} />
             </a>
           </div>
         </div>

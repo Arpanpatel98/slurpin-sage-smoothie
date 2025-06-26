@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import ProductCustomization from "./ProductCustomization";
 import "./Menu.css";
-import { useImageLoader } from '../hooks/useImageLoader';
+import { useImageLoader } from "../hooks/useImageLoader";
 
 export default function Menu() {
   const [categories, setCategories] = useState([]);
@@ -17,6 +17,7 @@ export default function Menu() {
   const [selectedItem, setSelectedItem] = useState(null);
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const excludeBaseSelection = ['morning-glory-smoothie','virgin-pina-colada'];
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
@@ -27,7 +28,12 @@ export default function Menu() {
     const fetchCategories = async () => {
       setLoading(true);
       try {
-        const categoryList = ["All Smoothies", "smoothies", "milkshakes","bowls"]; // Removed 'bowls'
+        const categoryList = [
+          "All Smoothies",
+          "smoothies",
+          "milkshakes",
+          "bowls",
+        ]; // Removed 'bowls'
         setCategories(categoryList);
         setActiveCategory("All Smoothies");
       } catch (error) {
@@ -50,14 +56,18 @@ export default function Menu() {
 
         // Fetch products
         const categoriesToFetch =
-          activeCategory === "All Smoothies" ? ["smoothies", "milkshakes"] : [activeCategory];
+          activeCategory === "All Smoothies"
+            ? ["smoothies", "milkshakes"]
+            : [activeCategory];
 
         for (const cat of categoriesToFetch) {
-          const querySnapshot = await getDocs(collection(db, `products/config/${cat}`));
+          const querySnapshot = await getDocs(
+            collection(db, `products/config/${cat}`)
+          );
           const categoryItems = await Promise.all(
             querySnapshot.docs.map(async (doc) => {
               const productData = doc.data();
-              
+
               // Skip inactive products
               if (productData.isActive === false) {
                 return null;
@@ -76,12 +86,13 @@ export default function Menu() {
                 reviewCount += 1;
               });
 
-              const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
-
+              const averageRating =
+                reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
               return {
                 id: doc.id,
                 category: cat,
-                name: productData.name || doc.id.replace(/-/g, " ").toUpperCase(),
+                name:
+                  productData.name || doc.id.replace(/-/g, " ").toUpperCase(),
                 ingredients: Array.isArray(productData.ingredients)
                   ? productData.ingredients.join(", ")
                   : "Ingredients not available",
@@ -90,16 +101,21 @@ export default function Menu() {
                 tags: productData.tags || [],
                 averageRating,
                 totalReviews: reviewCount,
-                stock: productData.stock || 0,
+                stock: productData.stock || 10,
                 isActive: productData.isActive !== false,
+                baseOptionDisable: excludeBaseSelection.includes(doc.id),
               };
             })
           );
           // Filter out null items (inactive products)
-          itemsData = [...itemsData, ...categoryItems.filter(item => item !== null)];
+          itemsData = [
+            ...itemsData,
+            ...categoryItems.filter((item) => item !== null),
+          ];
         }
 
         setItems(itemsData);
+        console.log("items", itemsData);
         setVisibleItems(6);
       } catch (error) {
         console.error("Error fetching items or reviews:", error);
@@ -150,7 +166,8 @@ export default function Menu() {
     if (
       ingredientsLower.includes("spinach") ||
       ingredientsLower.includes("kale") ||
-      (!ingredientsLower.includes("milk") || ingredientsLower.includes("almond milk"))
+      !ingredientsLower.includes("milk") ||
+      ingredientsLower.includes("almond milk")
     ) {
       tags.push("vegan");
     }
@@ -216,7 +233,10 @@ export default function Menu() {
     const DEFAULT_IMAGE_URL =
       "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
 
-    const { imageSrc, isLoading } = useImageLoader(item.image, DEFAULT_IMAGE_URL);
+    const { imageSrc, isLoading } = useImageLoader(
+      item.image,
+      DEFAULT_IMAGE_URL
+    );
 
     const itemTag = getItemTag(item);
     const healthTags = getHealthTags(item);
@@ -264,7 +284,9 @@ export default function Menu() {
 
           <div className="button-wrapper">
             <button
-              className={`add-to-cart-btn ${item.stock === 0 ? 'out-of-stock-btn_menu' : ''}`}
+              className={`add-to-cart-btn ${
+                item.stock === 0 ? "out-of-stock-btn_menu" : ""
+              }`}
               onClick={(e) => handleAddToCart(e, item)}
               disabled={item.stock === 0}
             >
@@ -281,8 +303,8 @@ export default function Menu() {
       <div className="menu-header">
         <h1 className="menu-title">Our Smoothie Menu</h1>
         <p className="menu-subtitle">
-          Discover our range of delicious, nutrient-packed smoothies made with the freshest
-          ingredients to boost your health and energy.
+          Discover our range of delicious, nutrient-packed smoothies made with
+          the freshest ingredients to boost your health and energy.
         </p>
       </div>
 
@@ -298,7 +320,9 @@ export default function Menu() {
             {categories.map((category, index) => (
               <button
                 key={index}
-                className={activeCategory === category ? "active-tab" : "tab-button"}
+                className={
+                  activeCategory === category ? "active-tab" : "tab-button"
+                }
                 onClick={() => setActiveCategory(category)}
               >
                 {category}
@@ -308,11 +332,17 @@ export default function Menu() {
 
           <div className="menu-grid">
             {items.length === 0 ? (
-              <div className="no-data">No items available in this category.</div>
+              <div className="no-data">
+                No items available in this category.
+              </div>
             ) : (
               items.slice(0, visibleItems).map((item) => {
                 return (
-                  <MenuItem key={`${item.category}-${item.id}`} item={item} onAddToCart={handleAddToCart} />
+                  <MenuItem
+                    key={`${item.category}-${item.id}`}
+                    item={item}
+                    onAddToCart={handleAddToCart}
+                  />
                 );
               })
             )}
@@ -330,7 +360,10 @@ export default function Menu() {
 
       <div className="nutrition-section">
         <h2>Nutrition Information</h2>
-        <p>We believe in transparency. Here's what makes our smoothies so good for you.</p>
+        <p>
+          We believe in transparency. Here's what makes our smoothies so good
+          for you.
+        </p>
 
         <div className="nutrition-cards">
           <div className="nutrition-card">
@@ -339,8 +372,8 @@ export default function Menu() {
             </div>
             <h3>Fresh Ingredients</h3>
             <p>
-              We source local, organic produce whenever possible to ensure maximum
-              nutrition and flavor in every sip.
+              We source local, organic produce whenever possible to ensure
+              maximum nutrition and flavor in every sip.
             </p>
           </div>
 
@@ -350,8 +383,8 @@ export default function Menu() {
             </div>
             <h3>Nutrient Dense</h3>
             <p>
-              Our smoothies are packed with vitamins, minerals, and antioxidants to
-              support your overall health and wellbeing.
+              Our smoothies are packed with vitamins, minerals, and antioxidants
+              to support your overall health and wellbeing.
             </p>
           </div>
 
@@ -369,7 +402,10 @@ export default function Menu() {
       </div>
 
       {showCustomization && selectedItem && (
-        <ProductCustomization product={selectedItem} onClose={handleCloseCustomization} />
+        <ProductCustomization
+          product={selectedItem}
+          onClose={handleCloseCustomization}
+        />
       )}
     </div>
   );
