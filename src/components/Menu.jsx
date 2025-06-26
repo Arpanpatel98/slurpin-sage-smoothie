@@ -101,7 +101,7 @@ export default function Menu() {
                 tags: productData.tags || [],
                 averageRating,
                 totalReviews: reviewCount,
-                stock: productData.stock || 10,
+                stock: productData.stock || 0,
                 isActive: productData.isActive !== false,
                 baseOptionDisable: excludeBaseSelection.includes(doc.id),
               };
