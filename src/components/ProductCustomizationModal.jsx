@@ -18,6 +18,7 @@ const ProductCustomizationModal = () => {
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [selectedBoosters, setSelectedBoosters] = useState([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [addons, setAddons] = useState([]); // For future use if needed
   const [bases, setBases] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [boosters, setBoosters] = useState([]);
@@ -55,6 +56,7 @@ const ProductCustomizationModal = () => {
       setSelectedToppings(product.toppings || []);
       setSelectedBoosters(product.boosters || []);
       setSpecialInstructions(product.specialInstructions || '');
+      setAddons(product.addons || []);
     }
   }, [isEditMode, product]);
 
@@ -375,7 +377,8 @@ const ProductCustomizationModal = () => {
   if (!currentProduct.id || !currentProduct.name) {
     return <div className="error_productcustomizationmodal">Invalid product data. Please try again.</div>;
   }
-
+  
+  console.log("Addons:", addons);
   return (
     <div
       className="overlay_productcustomizationmodal fade_in_global"

@@ -104,6 +104,7 @@ export default function Menu() {
                 stock: productData.stock || 0,
                 isActive: productData.isActive !== false,
                 baseOptionDisable: excludeBaseSelection.includes(doc.id),
+                addons: productData.addons || [],
               };
             })
           );

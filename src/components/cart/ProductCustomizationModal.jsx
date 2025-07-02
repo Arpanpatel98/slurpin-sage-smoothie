@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
-import {
-  collection,
-  getDocs,
-  setDoc,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { collection, setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import "./ProductCustomization.css";
+import { retriveProductAddons } from "../../services/AddOnService";
 
 const ProductCustomizationModal = () => {
   const { addToCart, setShowCustomization, cartItems, showCustomization } =
@@ -30,7 +25,6 @@ const ProductCustomizationModal = () => {
   const [boosters, setBoosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const excludeBaseSelection = ["morning-glory-smoothie", "virgin-pina-colada"];
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
@@ -53,9 +47,6 @@ const ProductCustomizationModal = () => {
     ...product,
     image: product?.image || DEFAULT_IMAGE_URL,
     price: Number(product?.price || defaultProduct.price),
-    baseOptionDisable: excludeBaseSelection.includes(
-      product?.productId || defaultProduct.productId
-    ),
   };
 
   // Initialize state with product data when in edit mode
@@ -95,144 +86,32 @@ const ProductCustomizationModal = () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch bases
-        const basesRef = collection(db, "customization_options/config/bases");
-        const basesSnapshot = await getDocs(basesRef);
-        const basesData = basesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().name,
-          price: doc.data().price || 0,
-        }));
-        setBases(basesData);
-
-        // Fetch toppings
-        const toppingsRef = collection(
-          db,
-          "customization_options/config/toppings"
-        );
-        const toppingsSnapshot = await getDocs(toppingsRef);
-        const toppingsData = toppingsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().name,
-          description: doc.data().description || "",
-          price: doc.data().price || 0,
-        }));
-        setToppings(toppingsData);
-
-        // Fetch boosters
-        const boostersRef = collection(
-          db,
-          "customization_options/config/boosters"
-        );
-        const boostersSnapshot = await getDocs(boostersRef);
-        const boostersData = boostersSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().name,
-          description: doc.data().description || "",
-          price: doc.data().price || 0,
-        }));
-        setBoosters(boostersData);
-
-        // Preselect customizations in edit mode
-        if (isEditMode && product) {
-          const validBase =
-            product.base && basesData.some((b) => b.name === product.base)
-              ? product.base
-              : basesData[0]?.name || "";
-          setBase(validBase);
-
-          const preselectedToppings = (product.toppings || [])
-            .map((pt) => {
-              const match = toppingsData.find((t) => t.id === pt.id);
-              return (
-                match ||
-                (pt.id && pt.name
-                  ? {
-                      id: pt.id,
-                      name: pt.name,
-                      description: pt.description || "",
-                      price: pt.price || 0,
-                    }
-                  : null)
-              );
-            })
-            .filter(Boolean)
-            .slice(0, 3);
-          setSelectedToppings(preselectedToppings);
-
-          const preselectedBoosters = (product.boosters || [])
-            .map((pb) => {
-              const match = boostersData.find((b) => b.id === pb.id);
-              return (
-                match ||
-                (pb.id && pb.name
-                  ? {
-                      id: pb.id,
-                      name: pb.name,
-                      description: pb.description || "",
-                      price: pb.price || 0,
-                    }
-                  : null)
-              );
-            })
-            .filter(Boolean)
-            .slice(0, 2);
-          setSelectedBoosters(preselectedBoosters);
-        } else if (basesData.length > 0) {
-          setBase(basesData[0].name);
+        if (currentProduct.addons && currentProduct.addons.length > 0) {
+          const bases = await retriveProductAddons(currentProduct, "base");
+          const toppings = await retriveProductAddons(
+            currentProduct,
+            "topping"
+          );
+          const boosters = await retriveProductAddons(
+            currentProduct,
+            "booster"
+          );
+          setBases(bases);
+          if (bases.length > 0) {
+            setBase(bases[0].name); // Set default base if available
+          }
+          setToppings(toppings);
+          setBoosters(boosters);
+        }
+        if (bases.length > 0) {
+          console.log(bases[0].name);
+          setBase(bases[0]?.name || "");
         }
       } catch (err) {
-        console.error('Error fetching customizations:', err);
-        setError('Failed to load customization options. Using defaults.');
-        const fallbackBases = [
-          { id: 'regular-milk', name: 'Regular Milk', price: 0 },
-          { id: 'coconut-milk', name: 'Coconut Milk', price: 0 },
-          { id: 'almond-milk', name: 'Almond Milk', price: 0 },
-          { id: 'oat-milk', name: 'Oat Milk', price: 0 },
-        ];
-        const fallbackToppings = [
-          { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
-          { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
-          { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
-          { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
-          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 },
-        ];
-        const fallbackBoosters = [
-          { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
-          { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
-          { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
-          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 },
-        ];
-        setBases(fallbackBases);
-        setToppings(fallbackToppings);
-        setBoosters(fallbackBoosters);
-
-        if (isEditMode) {
-          const preselectedToppings = (product.toppings || [])
-            .map((pt) => {
-              const match = fallbackToppings.find((t) => t.id === pt.id);
-              return match || (pt.id && pt.name ? { id: pt.id, name: pt.name, description: pt.description || '', price: pt.price || 0 } : null);
-            })
-            .filter(Boolean)
-            .slice(0, 3);
-          setSelectedToppings(preselectedToppings);
-
-          const preselectedBoosters = (product.boosters || [])
-            .map((pb) => {
-              const match = fallbackBoosters.find((b) => b.id === pb.id);
-              return match || (pb.id && pb.name ? { id: pb.id, name: pb.name, description: pb.description || '', price: pb.price || 0 } : null);
-            })
-            .filter(Boolean)
-            .slice(0, 2);
-          setSelectedBoosters(preselectedBoosters);
-
-          const validBase = product.base && fallbackBases.some((b) => b.name === product.base)
-            ? product.base
-            : fallbackBases[0]?.name || '';
-          setBase(validBase);
-        } else {
-          setBase(fallbackBases[0]?.name || '');
-        }
+        console.error("Error fetching customizations:", err);
+        setError(
+          "Failed to load customization options. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
@@ -244,6 +123,7 @@ const ProductCustomizationModal = () => {
     if (modalRef.current) {
       modalRef.current.focus();
     }
+    console.log("cart product", product);
   }, [isEditMode, product]);
 
   // Handle clicks outside modal
@@ -295,27 +175,33 @@ const ProductCustomizationModal = () => {
     setError(null);
 
     if (!auth.currentUser) {
-      setError('Please sign in to add items to your cart.');
+      setError("Please sign in to add items to your cart.");
       return;
     }
 
     if (!base) {
-      setError('Please select a base for your smoothie.');
+      setError("Please select a base for your smoothie.");
       return;
     }
 
     if (!currentProduct.id || !currentProduct.name) {
-      setError('Invalid product data.');
+      setError("Invalid product data.");
       return;
     }
 
-    const toppingsPrice = selectedToppings.reduce((sum, t) => sum + (t.price || 0), 0);
-    const boostersPrice = selectedBoosters.reduce((sum, b) => sum + (b.price || 0), 0);
+    const toppingsPrice = selectedToppings.reduce(
+      (sum, t) => sum + (t.price || 0),
+      0
+    );
+    const boostersPrice = selectedBoosters.reduce(
+      (sum, b) => sum + (b.price || 0),
+      0
+    );
     const totalPrice = (basePrice + toppingsPrice + boostersPrice) * quantity;
 
     const customizedProduct = {
       productId: currentProduct.productId || currentProduct.id,
-      category: currentProduct.category || 'smoothies',
+      category: currentProduct.category || "smoothies",
       name: currentProduct.name,
       image: currentProduct.image, // Use Firebase Storage URL
       price: totalPrice,
@@ -323,7 +209,7 @@ const ProductCustomizationModal = () => {
       base,
       toppings: selectedToppings,
       boosters: selectedBoosters,
-      specialInstructions: specialInstructions || '',
+      specialInstructions: specialInstructions || "",
       customized: true,
       timestamp: serverTimestamp(),
     };
@@ -331,8 +217,8 @@ const ProductCustomizationModal = () => {
     try {
       if (isEditMode) {
         // Edit mode: Update existing item
-        if (!product.id) throw new Error('Missing cart item ID');
-        
+        if (!product.id) throw new Error("Missing cart item ID");
+
         // Create a reference to the existing document
         const cartItemRef = doc(
           db,

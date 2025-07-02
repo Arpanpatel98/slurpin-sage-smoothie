@@ -1,37 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useCart } from '../context/CartContext';
-import { collection, getDocs, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
-import './ProductCustomization.css';
+import React, { useState, useEffect } from "react";
+import { useCart } from "../context/CartContext";
+import {
+  collection,
+  setDoc,
+  doc,
+  serverTimestamp,
+  getDoc,
+} from "firebase/firestore";
+import { db, auth } from "../firebase";
+import "./ProductCustomization.css";
+import { retriveProductAddons } from "../services/AddOnService";
 
 const ProductCustomization = ({ product, onClose }) => {
   const { addToCart } = useCart();
   const isEditMode = product && product.customized;
 
   // Initialize state with preselected customizations for edit mode
-  const [base, setBase] = useState(isEditMode ? product.base : '');
+  const [base, setBase] = useState(isEditMode ? product.base : "");
   const [quantity, setQuantity] = useState(isEditMode ? product.quantity : 1);
-  const [selectedToppings, setSelectedToppings] = useState(isEditMode ? product.toppings : []);
-  const [selectedBoosters, setSelectedBoosters] = useState(isEditMode ? product.boosters : []);
-  const [specialInstructions, setSpecialInstructions] = useState(
-    isEditMode ? product.specialInstructions || '' : ''
+  const [selectedToppings, setSelectedToppings] = useState(
+    isEditMode ? product.toppings : []
   );
+  const [selectedBoosters, setSelectedBoosters] = useState(
+    isEditMode ? product.boosters : []
+  );
+  const [specialInstructions, setSpecialInstructions] = useState(
+    isEditMode ? product.specialInstructions || "" : ""
+  );
+  // For future use if needed
   const [bases, setBases] = useState([]);
   const [toppings, setToppings] = useState([]);
   const [boosters, setBoosters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [currentStock, setCurrentStock] = useState(0);
 
   // Default image URL from Firebase Storage
   const DEFAULT_IMAGE_URL =
-    'https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469';
+    "https://firebasestorage.googleapis.com/v0/b/slurpin-sage.firebasestorage.app/o/products%2FAll%2Fall.HEIC?alt=media&token=5e2ae9b9-bb7d-4c56-96a1-0a60986c1469";
 
   // Default product
   const defaultProduct = {
-    id: 'morning-glory-smoothie',
-    category: 'smoothies',
-    name: 'MORNING GLORY SMOOTHIE',
+    id: "morning-glory-smoothie",
+    category: "smoothies",
+    name: "MORNING GLORY SMOOTHIE",
     image: DEFAULT_IMAGE_URL, // Use Firebase Storage default
     price: 500, // Matches seed.js
     rating: 4,
@@ -50,51 +62,28 @@ const ProductCustomization = ({ product, onClose }) => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch bases
-        const basesRef = collection(db, 'customization_options/config/bases');
-        const basesSnapshot = await getDocs(basesRef);
-        const basesData = basesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setBases(currentProduct.baseOptionDisable ? null : basesData);
-
-        // Fetch toppings
-        const toppingsRef = collection(db, 'customization_options/config/toppings');
-        const toppingsSnapshot = await getDocs(toppingsRef);
-        const toppingsData = toppingsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setToppings(toppingsData);
-
-        // Fetch boosters
-        const boostersRef = collection(db, 'customization_options/config/boosters');
-        const boostersSnapshot = await getDocs(boostersRef);
-        const boostersData = boostersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setBoosters(boostersData);
-
-        // Set default base only if not in edit mode
-        if (!isEditMode && basesData.length > 0) {
-          setBase(basesData[0].name);
+        if (currentProduct.addons && currentProduct.addons.length > 0) {
+          const bases = await retriveProductAddons(currentProduct, "base");
+          const toppings = await retriveProductAddons(
+            currentProduct,
+            "topping"
+          );
+          const boosters = await retriveProductAddons(
+            currentProduct,
+            "booster"
+          );
+          setBases(bases);
+          if(bases.length > 0) {
+            setBase(bases[0].name); // Set default base if available
+          }
+          setToppings(toppings);
+          setBoosters(boosters);
         }
       } catch (err) {
-        console.error('Error fetching customizations:', err);
-        setError('Failed to load customization options. Using defaults.');
-        // Fallback data
-        setBases([
-          { id: 'regular-milk', name: 'Regular Milk', price: 0 },
-          { id: 'coconut-milk', name: 'Coconut Milk', price: 0 },
-          { id: 'almond-milk', name: 'Almond Milk', price: 0 },
-          { id: 'oat-milk', name: 'Oat Milk', price: 0 },
-        ]);
-        setToppings([
-          { id: 'granola', name: 'Organic Granola', description: 'Rich in fiber', price: 30 },
-          { id: 'chia', name: 'Chia Seeds', description: 'Omega-3 rich', price: 25 },
-          { id: 'cacao', name: 'Raw Cacao Nibs', description: 'Antioxidant boost', price: 35 },
-          { id: 'coconut', name: 'Coconut Flakes', description: 'Good fats', price: 25 },
-          { id: 'honey', name: 'Raw Honey Drizzle', description: 'Natural sweetener', price: 30 },
-        ]);
-        setBoosters([
-          { id: 'protein', name: 'Plant Protein', description: '20g protein boost', price: 50 },
-          { id: 'collagen', name: 'Collagen Peptides', description: 'Skin & joint health', price: 60 },
-          { id: 'spirulina', name: 'Spirulina', description: 'Nutrient-dense algae', price: 45 },
-          { id: 'maca', name: 'Maca Powder', description: 'Energy & balance', price: 40 },
-        ]);
+        console.error("Error fetching customizations:", err);
+        setError(
+          "Failed to load customization options. Please try again later."
+        );
       } finally {
         setLoading(false);
       }
@@ -106,12 +95,15 @@ const ProductCustomization = ({ product, onClose }) => {
   useEffect(() => {
     const fetchStock = async () => {
       try {
-        const productRef = doc(db, `products/config/${product.category}/${product.id}`);
+        const productRef = doc(
+          db,
+          `products/config/${product.category}/${product.id}`
+        );
         const productDoc = await getDoc(productRef);
         const productData = productDoc.data();
         setCurrentStock(productData?.stock || 0);
       } catch (err) {
-        console.error('Error fetching stock:', err);
+        console.error("Error fetching stock:", err);
       }
     };
     fetchStock();
@@ -152,30 +144,36 @@ const ProductCustomization = ({ product, onClose }) => {
       setError(`Only ${currentStock} items available in stock`);
       return;
     }
-    setError('');
+    setError("");
     setQuantity(newQuantity);
   };
 
   const handleAddToCart = async () => {
     if (!auth.currentUser) {
-      setError('Please sign in to add items to your cart.');
+      setError("Please sign in to add items to your cart.");
       return;
     }
 
     if (!base) {
-      setError('Please select a base for your smoothie.');
+      setError("Please select a base for your smoothie.");
       return;
     }
 
     // Calculate total price
     const basePrice = Number(currentProduct.price);
-    const toppingsPrice = selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0);
-    const boostersPrice = selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0);
+    const toppingsPrice = selectedToppings.reduce(
+      (sum, topping) => sum + (topping.price || 0),
+      0
+    );
+    const boostersPrice = selectedBoosters.reduce(
+      (sum, booster) => sum + (booster.price || 0),
+      0
+    );
     const totalPrice = (basePrice + toppingsPrice + boostersPrice) * quantity;
 
     const customizedProduct = {
       productId: currentProduct.id,
-      category: currentProduct.category || 'smoothies',
+      category: currentProduct.category || "smoothies",
       name: currentProduct.name,
       price: totalPrice,
       quantity,
@@ -186,6 +184,7 @@ const ProductCustomization = ({ product, onClose }) => {
       customized: true,
       image: currentProduct.image,
       timestamp: serverTimestamp(),
+      addons: currentProduct.addons || [],
     };
 
     try {
@@ -199,8 +198,8 @@ const ProductCustomization = ({ product, onClose }) => {
       addToCart({ ...customizedProduct, id: cartItemRef.id });
       onClose();
     } catch (err) {
-      console.error('Error saving to cart:', err);
-      setError('Failed to add to cart. Please try again.');
+      console.error("Error saving to cart:", err);
+      setError("Failed to add to cart. Please try again.");
     }
   };
 
@@ -216,7 +215,7 @@ const ProductCustomization = ({ product, onClose }) => {
     return Array(5)
       .fill(0)
       .map((_, index) => (
-        <span key={index} className={index < rating ? 'star filled' : 'star'}>
+        <span key={index} className={index < rating ? "star filled" : "star"}>
           ★
         </span>
       ));
@@ -224,22 +223,37 @@ const ProductCustomization = ({ product, onClose }) => {
 
   const calculateTotalPrice = () => {
     const basePrice = Number(currentProduct.price);
-    const toppingsPrice = selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0);
-    const boostersPrice = selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0);
+    const toppingsPrice = selectedToppings.reduce(
+      (sum, topping) => sum + (topping.price || 0),
+      0
+    );
+    const boostersPrice = selectedBoosters.reduce(
+      (sum, booster) => sum + (booster.price || 0),
+      0
+    );
     return (basePrice + toppingsPrice + boostersPrice) * quantity;
   };
 
   if (loading) {
-    return <div className="customization-loading">Loading customization options...</div>;
+    return (
+      <div className="customization-loading">
+        Loading customization options...
+      </div>
+    );
   }
 
   return (
     <div className="customization-overlay" onClick={onClose}>
-      <div className="customization-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="customization-container"
+        onClick={(e) => e.stopPropagation()}
+      >
         {error && <div className="customization-error">{error}</div>}
         <div className="customization-header">
           <h2>Customize Your {currentProduct.name}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <div className="product-info">
@@ -250,36 +264,42 @@ const ProductCustomization = ({ product, onClose }) => {
               onError={(e) => {
                 e.target.onerror = null; // Prevent infinite loop
                 e.target.src = DEFAULT_IMAGE_URL; // Set default image
-                console.warn(`Failed to load image for ${currentProduct.name}: ${currentProduct.image}`);
+                console.warn(
+                  `Failed to load image for ${currentProduct.name}: ${currentProduct.image}`
+                );
               }}
             />
           </div>
 
           <div className="product-details">
             <h3>{currentProduct.name}</h3>
-            <p className="product-base">{base || 'Select a base'}</p>
+            <p className="product-base">{base || "Select a base"}</p>
             <div className="product-rating">
               {renderStars(currentProduct.rating)}
-              <span className="review-count">({currentProduct.reviewCount})</span>
+              <span className="review-count">
+                ({currentProduct.reviewCount})
+              </span>
             </div>
           </div>
         </div>
 
         {!currentProduct.baseOptionDisable && (
           <div className="customization-section">
-          <h4>Base</h4>
-          <div className="base-options">
-            {bases?.map((baseOption) => (
-              <button
-                key={baseOption.id}
-                className={`base-option ${base === baseOption.name ? 'selected' : ''}`}
-                onClick={() => handleBaseChange(baseOption.name)}
-              >
-                {baseOption.name}
-              </button>
-            ))}
+            <h4>Base</h4>
+            <div className="base-options">
+              {bases?.map((baseOption) => (
+                <button
+                  key={baseOption.id}
+                  className={`base-option ${
+                    base === baseOption.name ? "selected" : ""
+                  }`}
+                  onClick={() => handleBaseChange(baseOption.name)}
+                >
+                  {baseOption.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div> 
         )}
 
         <div className="customization-section">
@@ -295,12 +315,17 @@ const ProductCustomization = ({ product, onClose }) => {
                     type="checkbox"
                     checked={isToppingSelected(topping.id)}
                     onChange={() => handleToppingToggle(topping)}
-                    disabled={!isToppingSelected(topping.id) && selectedToppings.length >= 3}
+                    disabled={
+                      !isToppingSelected(topping.id) &&
+                      selectedToppings.length >= 3
+                    }
                   />
                   <span className="checkmark"></span>
                   <div className="topping-info">
                     <span className="topping-name">{topping.name}</span>
-                    <span className="topping-description">{topping.description}</span>
+                    <span className="topping-description">
+                      {topping.description}
+                    </span>
                   </div>
                   <span className="topping-price">+₹{topping.price}</span>
                 </label>
@@ -322,12 +347,17 @@ const ProductCustomization = ({ product, onClose }) => {
                     type="checkbox"
                     checked={isBoosterSelected(booster.id)}
                     onChange={() => handleBoosterToggle(booster)}
-                    disabled={!isBoosterSelected(booster.id) && selectedBoosters.length >= 2}
+                    disabled={
+                      !isBoosterSelected(booster.id) &&
+                      selectedBoosters.length >= 2
+                    }
                   />
                   <span className="checkmark"></span>
                   <div className="booster-info">
                     <span className="booster-name">{booster.name}</span>
-                    <span className="booster-description">{booster.description}</span>
+                    <span className="booster-description">
+                      {booster.description}
+                    </span>
                   </div>
                   <span className="booster-price">+₹{booster.price}</span>
                 </label>
@@ -348,7 +378,9 @@ const ProductCustomization = ({ product, onClose }) => {
 
         <div className="quantity_section_productcustomizationmodal">
           <div className="product_quantity_productcustomizationmodal">
-            <span className="product_info_label_productcustomizationmodal">Quantity</span>
+            <span className="product_info_label_productcustomizationmodal">
+              Quantity
+            </span>
             <div className="quantity_controls_productcustomizationmodal">
               <button
                 className="quantity_button_productcustomizationmodal"
@@ -357,7 +389,9 @@ const ProductCustomization = ({ product, onClose }) => {
               >
                 -
               </button>
-              <span className="quantity_value_productcustomizationmodal">{quantity}</span>
+              <span className="quantity_value_productcustomizationmodal">
+                {quantity}
+              </span>
               <button
                 className="quantity_button_productcustomizationmodal"
                 onClick={() => handleQuantityChange(quantity + 1)}
@@ -367,7 +401,9 @@ const ProductCustomization = ({ product, onClose }) => {
               </button>
             </div>
           </div>
-          {error && <div className="error_productcustomizationmodal">{error}</div>}
+          {error && (
+            <div className="error_productcustomizationmodal">{error}</div>
+          )}
           {currentStock > 0 && currentStock <= 5 && (
             <div className="stock_warning_productcustomizationmodal">
               Only {currentStock} items left in stock!
@@ -386,7 +422,11 @@ const ProductCustomization = ({ product, onClose }) => {
             <div className="summary-item">
               <span className="summary-label">Nutritional Boosters</span>
               <span className="summary-price">
-                ₹{selectedBoosters.reduce((sum, booster) => sum + (booster.price || 0), 0)}
+                ₹
+                {selectedBoosters.reduce(
+                  (sum, booster) => sum + (booster.price || 0),
+                  0
+                )}
               </span>
             </div>
           )}
@@ -395,7 +435,11 @@ const ProductCustomization = ({ product, onClose }) => {
             <div className="summary-item">
               <span className="summary-label">Toppings</span>
               <span className="summary-price">
-                ₹{selectedToppings.reduce((sum, topping) => sum + (topping.price || 0), 0)}
+                ₹
+                {selectedToppings.reduce(
+                  (sum, topping) => sum + (topping.price || 0),
+                  0
+                )}
               </span>
             </div>
           )}
@@ -408,7 +452,8 @@ const ProductCustomization = ({ product, onClose }) => {
 
         <div className="cart-button-container">
           <button className="add-to-cart-button" onClick={handleAddToCart}>
-            {isEditMode ? 'Update Cart' : 'Add to Cart'} - ₹{calculateTotalPrice()}
+            {isEditMode ? "Update Cart" : "Add to Cart"} - ₹
+            {calculateTotalPrice()}
           </button>
         </div>
       </div>
